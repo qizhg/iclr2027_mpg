@@ -1,0 +1,3110 @@
+\documentclass{article}
+\usepackage{iclr2027_conference,times}
+
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumitem}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+\title{State Quotients and Agent-Permutation Sharing
+for Markov Potential Games}
+
+\author{Anonymous authors\\Paper under double-blind review}
+
+%\iclrfinalcopy
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\crefname{assumption}{Assumption}{Assumptions}
+\Crefname{assumption}{Assumption}{Assumptions}
+\crefname{definition}{Definition}{Definitions}
+\Crefname{definition}{Definition}{Definitions}
+\crefname{proposition}{Proposition}{Propositions}
+\Crefname{proposition}{Proposition}{Propositions}
+\crefname{corollary}{Corollary}{Corollaries}
+\Crefname{corollary}{Corollary}{Corollaries}
+\crefname{remark}{Remark}{Remarks}
+\Crefname{remark}{Remark}{Remarks}
+
+\renewcommand{\Pr}{\mathrm{Pr}}
+\newcommand{\Nash}{\mathrm{Nash\ gap}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\St}{\mathcal{S}}
+\newcommand{\Ac}{\mathcal{A}}
+\newcommand{\abs}[1]{\left\lvert#1\right\rvert}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\orbit}[1]{[#1]}
+\newcommand{\quotient}[1]{\overline{#1}}
+\newcommand{\Vbar}{\overline{V}}
+\newcommand{\Qbar}{\overline{Q}}
+\newcommand{\dbar}{\overline{d}}
+\newcommand{\Potbar}{\overline{\Phi}}
+\newcommand{\Mbar}{\kappa_G}
+\newcommand{\Sym}{\mathrm{S}}
+\newcommand{\Phisup}{\Phi_{\mathrm{sup}}}
+\newcommand{\hatP}{\widehat{\quotient P}}
+\newcommand{\hatPot}{\widehat{\Potbar}}
+\newcommand{\pice}{\bar\pi_{\mathrm{ce}}}
+\newcommand{\trP}{\widetilde{P}}
+
+\begin{document}
+
+\maketitle
+
+\section{Problem Setup}
+\label{sec:preliminaries}
+
+For a finite set $\mathcal X$, let $\abs{\mathcal X}$ denote its cardinality and
+$\Delta(\mathcal X)$ the probability simplex over it. We write
+$[n]:=\{1,\ldots,n\}$.
+
+\subsection{Finite Discounted Markov Games}
+
+A finite discounted Markov game is
+\begin{align*}
+  M=\langle\N,\St,\Ac,P,\vec r,\mu,\gamma\rangle.
+\end{align*}
+The agent set is $\N=[N]$, the state space is $\St$, and the joint action space
+factors as
+\begin{align*}
+  \Ac=\Ac^1\times\cdots\times\Ac^N.
+\end{align*}
+For agent $i$, write
+$\Ac^{-i}:=\prod_{j\ne i}\Ac^j$. We write a joint action as
+$a=(a^1,\ldots,a^N)$ and as $a=(a^i,a^{-i})$ when focusing on agent $i$.
+The transition kernel is
+$P:\St\times\Ac\to\Delta(\St)$, the initial distribution is
+$\mu\in\Delta(\St)$, and the discount factor is $\gamma\in[0,1)$. Each normalized
+reward function is $r^i:\St\times\Ac\to[0,1]$.
+
+All policies are stationary product policies
+$\pi=(\pi^1,\ldots,\pi^N)$, where
+\begin{align*}
+  \pi^i:\St\to\Delta(\Ac^i),
+  \qquad
+  \pi(a\mid s)=\prod_{i=1}^N\pi^i(a^i\mid s).
+\end{align*}
+For agent $i$, define
+\begin{align*}
+  G_t^i
+  &:=\sum_{\ell=0}^{\infty}\gamma^\ell r^i(s_{t+\ell},a_{t+\ell}),\\
+  V_\pi^i(s)
+  &:=\E_\pi[G_t^i\mid s_t=s],\\
+  Q_\pi^i(s,a)
+  &:=\E_\pi[G_t^i\mid s_t=s,a_t=a],\\
+  A_\pi^i(s,a)
+  &:=Q_\pi^i(s,a)-V_\pi^i(s),\\
+  V_\pi^i(\mu)
+  &:=\E_{s\sim\mu}[V_\pi^i(s)].
+\end{align*}
+For a local action $b\in\Ac^i$, the marginalized local advantage is
+\begin{align}
+  A_\pi^i(s,b)
+  :=
+  \sum_{a^{-i}\in\Ac^{-i}}
+  \pi^{-i}(a^{-i}\mid s)A_\pi^i(s,b,a^{-i}).
+  \label{eq:local-advantage}
+\end{align}
+The unnormalized discounted state-visitation measure is
+\begin{align*}
+  d^\pi_\mu(s)
+  :=
+  \E_{s_0\sim\mu}\left[
+    \sum_{t=0}^{\infty}\gamma^t
+    \Pr^\pi(s_t=s\mid s_0)
+  \right],
+  \qquad
+  \sum_{s\in\St}d^\pi_\mu(s)=\frac{1}{1-\gamma}.
+\end{align*}
+
+\subsection{Markov Potential Games}
+
+\begin{definition}[Markov potential game]
+\label{def:mpg}
+A Markov game is a \emph{Markov potential game} (MPG) if there is a function
+$\phi:\St\times\Ac\to\R$ such that, for every agent $i$, state $s$,
+opponents' policy $\pi^{-i}$, and pair of local policies
+$\pi^i,\widetilde\pi^i$,
+\begin{align*}
+  &V^i_{\widetilde\pi^i,\pi^{-i}}(s)
+  -V^i_{\pi^i,\pi^{-i}}(s)\\
+  &\quad=
+  \E_{(\widetilde\pi^i,\pi^{-i})}\left[
+    \sum_{t=0}^{\infty}\gamma^t\phi(s_t,a_t)
+    \,\middle|\,s_0=s
+  \right]
+  -
+  \E_{(\pi^i,\pi^{-i})}\left[
+    \sum_{t=0}^{\infty}\gamma^t\phi(s_t,a_t)
+    \,\middle|\,s_0=s
+  \right].
+\end{align*}
+\end{definition}
+
+For a product policy $\pi$, define its total potential by
+\begin{align*}
+  \Phi_\pi(s)
+  &:=
+  \E_{\pi,P}\left[
+    \sum_{t=0}^{\infty}\gamma^t\phi(s_t,a_t)
+    \,\middle|\,s_0=s
+  \right],\\
+  \Phi_\pi(\mu)
+  &:=
+  \E_{s\sim\mu}[\Phi_\pi(s)].
+\end{align*}
+The MPG condition is equivalently
+\begin{align*}
+  V^i_{\widetilde\pi^i,\pi^{-i}}(s)
+  -V^i_{\pi^i,\pi^{-i}}(s)
+  =
+  \Phi_{\widetilde\pi^i,\pi^{-i}}(s)
+  -\Phi_{\pi^i,\pi^{-i}}(s).
+\end{align*}
+A fully cooperative game with $r^i\equiv r$ for all agents is an MPG with
+$\phi=r$.
+
+\subsection{Nash Gap and Regularity}
+
+\begin{definition}[Nash gap and $\epsilon$-Nash policy]
+\label{def:nash}
+The \emph{Nash gap} of a product policy $\pi$ is
+\begin{align*}
+  \Nash_M(\pi)
+  :=
+  \max_{i\in\N}
+  \left(
+    \max_{\widetilde\pi^i}
+    V^i_{\widetilde\pi^i,\pi^{-i}}(\mu)
+    -V^i_\pi(\mu)
+  \right),
+\end{align*}
+where the inner maximum ranges over all stationary local policies
+$\widetilde\pi^i:\St\to\Delta(\Ac^i)$. A policy is \emph{$\epsilon$ Nash} if
+$\Nash_M(\pi)\le\epsilon$.
+\end{definition}
+
+\begin{assumption}[Standing regularity]
+\label{assumption:standing}
+\leavevmode
+\begin{enumerate}[label=(\roman*),leftmargin=2.2em,itemsep=2pt,topsep=2pt]
+  \item \emph{Positive visitation.}
+  For every product policy $\pi$ and state $s$,
+  $d^\pi_\mu(s)>0$. Consequently,
+  \begin{align}
+    \kappa
+    :=
+    \max_{\pi,\pi'}
+    \norm{d^\pi_\mu/d^{\pi'}_\mu}_\infty
+    =
+    \max_{\pi,\pi'}\max_{s\in\St}
+    \frac{d^\pi_\mu(s)}{d^{\pi'}_\mu(s)}
+    <\infty.
+    \label{eq:mismatch}
+  \end{align}
+  \item \emph{Bounded total potential.}
+  There are finite constants $\Phi_{\min}\le\Phi_{\max}$ such that
+  \begin{align*}
+    \Phi_{\min}\le\Phi_\pi(s)\le\Phi_{\max}
+    \qquad
+    \text{for every product policy $\pi$ and state $s$.}
+  \end{align*}
+\end{enumerate}
+\end{assumption}
+
+The stationary product-policy space is a finite product of probability simplexes
+and is therefore compact. The map $\pi\mapsto d^\pi_\mu(s)$ is continuous for
+every state $s$. Consequently, positive visitation for every policy implies a
+uniformly positive minimum visitation over policies and states, which justifies
+the finiteness of $\kappa$ in \eqref{eq:mismatch}.
+
+\section{Finite-Group State Symmetry}
+\label{sec:state-symmetry}
+
+Let $G$ be a finite group with identity $e$. A left action of $G$ on a finite set
+$\mathcal X$ is a family of bijections $\{T_g:\mathcal X\to\mathcal X\}_{g\in G}$
+satisfying
+\begin{align*}
+  T_e=\mathrm{id},
+  \qquad
+  T_g\circ T_h=T_{gh}.
+\end{align*}
+The orbit and stabilizer of $x\in\mathcal X$ are
+\begin{align*}
+  \orbit{x}
+  &:=
+  \{T_g[x]:g\in G\},\\
+  \mathrm{Stab}(x)
+  &:=
+  \{g\in G:T_g[x]=x\}.
+\end{align*}
+The orbits partition $\mathcal X$ and form the orbit space $\mathcal X/G$.
+The orbit-stabilizer theorem gives
+\begin{align*}
+  \abs{\orbit{x}}
+  =
+  \frac{\abs G}{\abs{\mathrm{Stab}(x)}}
+  \le\abs G,
+  \qquad
+  \abs{\mathcal X/G}\ge\frac{\abs{\mathcal X}}{\abs G}.
+\end{align*}
+
+\begin{definition}[Finite-group state symmetry]
+\label{def:g-symmetric-mg}
+Let $G$ act on $\St$ through bijections $\{L_g\}_{g\in G}$. A Markov game
+$M$ is \emph{$G$-state-symmetric} if, for every
+$g\in G$, $s,s'\in\St$, $a\in\Ac$, and $i\in\N$,
+\begin{align}
+  P(L_g[s']\mid L_g[s],a)
+  &=P(s'\mid s,a),
+  \label{eq:transition-equivariance}\\
+  r^i(L_g[s],a)
+  &=r^i(s,a).
+  \notag
+\end{align}
+The action $a$ is unchanged: the group acts only on the state coordinate.
+\end{definition}
+
+\begin{assumption}[Invariant potential and initial distribution]
+\label{assumption:symmetry}
+For the $G$-state-symmetric MPG $M$, assume
+\begin{align*}
+  \phi(L_g[s],a)
+  &=\phi(s,a),
+  \\
+  \mu(L_g[s])
+  &=\mu(s)
+\end{align*}
+for every $g\in G$, $s\in\St$, and $a\in\Ac$.
+\end{assumption}
+
+Potential invariance is automatic in a cooperative game when $\phi=r$.
+Initial-distribution invariance means that states in the same orbit receive equal
+initial mass.
+
+\begin{definition}[$G$-invariant policy]
+\label{def:g-invariant-policy}
+A product policy $\pi$ is \emph{$G$ invariant} if
+\begin{align*}
+  \pi^i(a^i\mid L_g[s])
+  =
+  \pi^i(a^i\mid s)
+  \qquad
+  \text{for every $i$, $g$, $s$, and $a^i$.}
+\end{align*}
+Equivalently,
+$\pi(a\mid L_g[s])=\pi(a\mid s)$ for every joint action $a$.
+\end{definition}
+
+The per-agent conditions imply joint invariance by multiplying the local action
+probabilities. Conversely, joint invariance implies each per-agent condition after
+summing over the other agents' actions. Thus an invariant policy assigns the same
+local action distribution to every state in an orbit.
+We use the same terminology for a local policy: $\nu^i$ is $G$ invariant if
+$\nu^i(a^i\mid L_g[s])=\nu^i(a^i\mid s)$ for every $g,s,a^i$.
+
+\section{The Quotient Markov Game}
+\label{sec:quotient}
+
+Let
+\begin{align*}
+  \quotient\St:=\St/G
+\end{align*}
+be the set of state orbits, and let
+\begin{align*}
+  \rho:\St\to\quotient\St,
+  \qquad
+  \rho(s):=\orbit{s},
+\end{align*}
+be the orbit map. Fix a representative
+$\iota(\bar s)\in\bar s$ for each $\bar s\in\quotient\St$.
+
+\begin{definition}[Quotient Markov game induced by $G$]
+\label{def:quotient-mg}
+Let $M$ be a $G$-state-symmetric Markov game. Its \emph{quotient Markov game}
+induced by $G$ is
+\begin{align*}
+  \quotient M
+  :=
+  \langle
+    \N,\quotient\St,\Ac,\quotient P,\vec{\quotient r},
+    \quotient\mu,\gamma
+  \rangle.
+\end{align*}
+It has the same agents, local action spaces, and discount factor as $M$. For any
+$s\in\bar s$, its transition kernel, rewards, and initial distribution are
+\begin{align}
+  \quotient P(\bar s'\mid\bar s,a)
+  &:=
+  \sum_{s'\in\bar s'}P(s'\mid s,a),
+  \label{eq:quotient-transition}\\
+  \quotient r^{\,i}(\bar s,a)
+  &:=
+  r^i(s,a),
+  \label{eq:quotient-reward}\\
+  \quotient\mu(\bar s)
+  &:=
+  \sum_{s\in\bar s}\mu(s).
+  \notag
+\end{align}
+When $M$ is an MPG satisfying \Cref{assumption:symmetry}, the corresponding
+orbit-level potential signal is
+\begin{align}
+  \quotient\phi(\bar s,a)
+  :=
+  \phi(s,a)
+  \qquad
+  \text{for any $s\in\bar s$.}
+  \label{eq:quotient-potential}
+\end{align}
+\end{definition}
+
+\paragraph{Quotient-process notation.}
+For a quotient policy $\bar\pi$, write
+$\Vbar^i_{\bar\pi}$ and $\Qbar^i_{\bar\pi}$ for agent $i$'s value and
+action-value functions in $\quotient M$, and write
+$\dbar^{\bar\pi}_{\quotient\mu}$ for its discounted state-visitation measure
+from $\quotient\mu$. These quantities use the same definitions as in
+\Cref{sec:preliminaries}, with
+$(M,\St,P,\vec r,\mu)$ replaced by
+$(\quotient M,\quotient\St,\quotient P,\vec{\quotient r},\quotient\mu)$.
+Let $\Pi(\quotient M)$ denote the stationary product policies on the quotient and
+let $\Pi_G(M)$ denote the $G$-invariant stationary product policies on $M$.
+
+\paragraph{Lifting quotient policies.}
+Let $\bar\pi$ be a stationary product policy on $\quotient M$. Its lift to $M$ is
+the product policy $\bar\pi^\uparrow$ defined coordinatewise by
+\begin{align*}
+  \bar\pi^{\uparrow,i}(a^i\mid s)
+  :=
+  \bar\pi^i(a^i\mid\rho(s)).
+\end{align*}
+The lift is $G$ invariant because $\rho(L_g[s])=\rho(s)$.
+
+Conversely, a $G$-invariant policy $\pi$ on $M$ can be projected to
+$\quotient M$ by
+\begin{align*}
+  \pi^{\downarrow,i}(a^i\mid\bar s)
+  :=
+  \pi^i(a^i\mid\iota(\bar s)).
+\end{align*}
+Invariance makes this definition independent of the selected representative.
+Thus quotient policies are in bijection with $G$-invariant policies on $M$.
+
+\paragraph{Black-box rate convention.}
+All rate statements below use a target accuracy $\epsilon>0$.
+Fix a learning algorithm.  A function
+$T_{\mathrm{MG}}(\epsilon,S;\vartheta)$ is a \emph{uniform MPG certificate} on
+a class of games if, for every game $X$ in the class,
+\begin{align}
+  T\ge T_{\mathrm{MG}}
+  (\epsilon,\abs{\mathcal S_X};\vartheta)
+  \quad\Longrightarrow\quad
+  \min_{0\le t<T}\Nash_X(\pi_t^X)\le\epsilon.
+  \label{eq:uniform-mpg-rate-profile}
+\end{align}
+Here $S=\abs{\mathcal S_X}$ is the number of Markov states and $\vartheta$
+collects every other hypothesis and numerical bound used by the convergence
+theorem.  Calling the certificate uniform means that the same $\vartheta$ is
+valid for all games being compared.
+
+\begin{theorem}[Exact quotient reduction and unrestricted Nash preservation]
+\label{thm:exact-quotient}
+Let $M$ be a $G$-state-symmetric MPG under
+\Cref{assumption:standing,assumption:symmetry}. Then the quotient
+$\quotient M$ has the following properties.
+\begin{enumerate}[label=\arabic*.,leftmargin=2.0em,itemsep=2pt,topsep=2pt]
+  \item The quotient data in \Cref{def:quotient-mg} do not depend on the
+  representative $s\in\bar s$. The resulting quotient is an MPG with
+  potential $\quotient\phi$ and total-potential bounds
+  $[\Phi_{\min},\Phi_{\max}]$.  For every quotient policy $\bar\pi$, its lift is
+  $G$ invariant and preserves statewise values:
+  \begin{align*}
+    V^i_{\bar\pi^\uparrow}(s)
+    =
+    \Vbar^i_{\bar\pi}(\rho(s)).
+  \end{align*}
+  \item Lifting preserves the unrestricted Nash gap:
+  \begin{align}
+    \Nash_M(\bar\pi^\uparrow)
+    =
+    \Nash_{\quotient M}(\bar\pi).
+    \label{eq:nash-gap-preservation}
+  \end{align}
+  The maximization on the left still ranges over all local policies on $M$.
+  Consequently, $\bar\pi$ is $\epsilon$ Nash in $\quotient M$ if and only if
+  $\bar\pi^\uparrow$ is $\epsilon$ Nash in $M$.
+
+  \item \label{item:quotient-rate-transfer}
+  Suppose the uniform certificate above applies to a class containing both
+  $M$ and $\quotient M$. Run the algorithm on $\quotient M$ and lift every
+  iterate as
+  $\pi_t:=\bar\pi_t^\uparrow$. Then
+  \begin{align}
+    \min_{0\le t<T}\Nash_M(\pi_t)
+    \le\epsilon
+    \quad\text{whenever}\quad
+    T\ge
+    T_{\mathrm{MG}}
+    (\epsilon,\abs{\quotient\St};\vartheta).
+    \label{eq:quotient-black-box-rate}
+  \end{align}
+  Thus any uniform rate for the unreduced MPG transfers by substituting
+  $\abs{\quotient\St}$ for $\abs\St$. If the certificate is nondecreasing in $S$,
+  this sufficient iteration budget is no larger than the unreduced one.
+  In particular, if a sufficient budget has state dependence
+  \begin{align*}
+    B_X(\epsilon)
+    =
+    C(\vartheta)\abs{\mathcal S_X}^{\alpha}\epsilon^{-p},
+    \qquad
+    C(\vartheta)>0,\quad \alpha,p\ge0,
+  \end{align*}
+  then the full and quotient sufficient budgets satisfy
+  \begin{align}
+    \frac{B_{\mathrm{quot}}(\epsilon)}
+         {B_{\mathrm{full}}(\epsilon)}
+    =
+    \left(
+      \frac{\abs{\quotient\St}}{\abs\St}
+    \right)^\alpha.
+    \label{eq:quotient-state-rate-factor}
+  \end{align}
+  This is a comparison of sufficient upper bounds, not realized runtime.
+\end{enumerate}
+\end{theorem}
+
+\paragraph{Proof idea.}
+Transition equivariance makes the orbit process Markov, and a Bellman fixed-point
+argument identifies quotient values with lifted values. Against invariant
+opponents, an agent's best-response MDP is itself $G$ symmetric. Its optimal
+action values are constant on state orbits, so fixed tie-breaking gives an
+invariant optimal response. Quotient deviations therefore attain the same value
+as unrestricted deviations in the original game. The rate statement then
+applies the uniform certificate to the quotient iterates and lifts them.
+Formal proofs are in
+\Cref{app:proof-quotient-well-posed,app:proof-policy-correspondence,app:proof-quotient-is-mpg,app:proof-nash-gap-preservation,app:proof-quotient-rate-transfer}.
+
+\begin{remark}[Scope of the quotient]
+\label{rem:quotient-scope}
+The construction uses the same joint action $a$ at every state in an orbit. If the
+group also transforms action labels or permutes agent identities, then
+\eqref{eq:quotient-transition} does not by itself define the appropriate reduced
+decision problem. Such symmetries require a reduction that also tracks the moved
+action or agent coordinates. Homogeneous agent relabelings are treated through
+pointed-state policy sharing in \Cref{sec:agent-permutations}.
+\end{remark}
+
+\section{Homogeneous Agent-Permutation Symmetry}
+\label{sec:agent-permutations}
+
+State quotients identify states while keeping every decision coordinate fixed.
+Relabeling homogeneous agents instead moves state, action, reward, and policy
+coordinates together. The appropriate exact representation is therefore a shared
+policy on orbits of \emph{pointed states}, where the point records the acting agent.
+Let $\Sym_N$ denote the symmetric group of permutations of $\N=[N]$.
+As in \Cref{sec:preliminaries}, each local policy is indexed by the full state;
+the pointed orbit below is its invariant summary relative to a focal agent.
+
+\begin{assumption}[Homogeneous agent-permutation structure]
+\label{assumption:permutation-structure}
+Let $\mathcal C$ and $\mathcal B$ be finite sets, let
+$\St=\mathcal C^N$, and let $\Ac^i=\mathcal B$ for every agent. For
+$\sigma\in\Sym_N$, define
+\begin{align*}
+  (\sigma\mathbin{\cdot}s)^i
+  &:=
+  s^{\sigma^{-1}(i)},&
+  (\sigma\mathbin{\cdot}a)^i
+  &:=
+  a^{\sigma^{-1}(i)}.
+\end{align*}
+Assume that, for every $\sigma\in\Sym_N$, $i\in\N$, $s,s'\in\St$, and
+$a\in\mathcal B^N$,
+\begin{align}
+  P(\sigma\mathbin{\cdot}s'\mid
+    \sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)
+  &=
+  P(s'\mid s,a),
+  \label{eq:perm-transition}\\
+  r^{\sigma(i)}(\sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)
+  &=
+  r^i(s,a).
+  \label{eq:perm-reward}
+\end{align}
+For the MPG potential and initial distribution, assume
+\begin{align}
+  \phi(\sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)
+  &=
+  \phi(s,a),
+  \notag\\
+  \mu(\sigma\mathbin{\cdot}s)
+  &=
+  \mu(s).
+  \label{eq:perm-mu}
+\end{align}
+\end{assumption}
+
+Let $\Sym_N$ act on a pointed state by
+$\sigma\mathbin{\cdot}(i,s):=(\sigma(i),\sigma\mathbin{\cdot}s)$, and define
+\begin{align*}
+  \mathcal Z
+  &:=
+  (\N\times\St)/\Sym_N,&
+  z_i(s)
+  &:=
+  \orbit{(i,s)}_{\Sym_N}.
+\end{align*}
+Thus $z_i(s)$ is the orbit of the state as seen from focal agent $i$.  In the
+Cartesian model $\St=\mathcal C^N$, this orbit has the concrete representation
+\begin{align*}
+  z_i(s)
+  \longleftrightarrow
+  \left(s^i,\{\!\{s^k:k\ne i\}\!\}\right).
+\end{align*}
+Equivalently,
+$\mathcal Z\cong
+\mathcal C\times\mathcal M_{N-1}(\mathcal C)$, where
+$\mathcal M_m(\mathcal C)$ denotes the multisets of size $m$ drawn from
+$\mathcal C$.  Hence
+\begin{align*}
+  \abs{\mathcal Z}
+  =
+  \abs{\mathcal C}
+  \binom{\abs{\mathcal C}+N-2}{N-1}.
+\end{align*}
+Thus sharing uses $\abs{\mathcal Z}$ local policy blocks instead of the
+$N\abs{\mathcal C}^N$ blocks in an unrestricted product-policy table.
+
+\begin{definition}[Permutation-invariant and shared policies]
+\label{def:permutation-invariant-policy}
+A product policy $\pi$ is \emph{permutation invariant} if
+\begin{align}
+  \pi^{\sigma(i)}(b\mid\sigma\mathbin{\cdot}s)
+  =
+  \pi^i(b\mid s)
+  \qquad
+  \text{for every $\sigma\in\Sym_N$, $i\in\N$, $s\in\St$, and $b\in\mathcal B$.}
+  \label{eq:perm-invariant-policy}
+\end{align}
+A product policy is \emph{pointed-orbit shared} if there is one rule
+$\psi:\mathcal Z\to\Delta(\mathcal B)$ such that
+\begin{align}
+  \pi^i(b\mid s)
+  =
+  \psi(b\mid z_i(s))
+  \qquad
+  \text{for every $i\in\N$, $s\in\St$, and $b\in\mathcal B$.}
+  \label{eq:shared-rule}
+\end{align}
+Write $\Pi_{\Sym_N}(M)$ for the permutation-invariant product policies.
+\end{definition}
+
+For any rule $\chi:\mathcal Z\to\Delta(\mathcal B)$ and focal agent $i$, write
+$\chi\circ z_i$ for the local policy
+\begin{align*}
+  (\chi\circ z_i)(b\mid s)
+  :=
+  \chi(b\mid z_i(s)).
+\end{align*}
+
+\paragraph{Shared-solver rate convention.}
+Call an MPG $X$ \emph{permutation symmetric} if it has agent set $\N=[N]$, a
+common action set $\mathcal B_X$, a finite state space $\mathcal S_X$ equipped
+with a $\Sym_N$ action, and satisfies the transition, reward, potential, and
+initial-distribution symmetry identities in
+\Cref{assumption:permutation-structure}. Let $\Sym_N$ act on pointed states by
+$\sigma\mathbin{\cdot}(i,x):=(\sigma(i),\sigma\mathbin{\cdot}x)$, and define
+\begin{align}
+  \mathcal Z_X
+  &:=
+  (\N\times\mathcal S_X)/\Sym_N,&
+  z_i^X(x)
+  &:=
+  \orbit{(i,x)}_{\Sym_N},
+  \notag\\
+  \mathrm{OrbGap}_X^i(\pi)
+  &:=
+  \max_{\chi:\mathcal Z_X\to\Delta(\mathcal B_X)}
+  \left[
+    V^i_{\chi\circ z_i^X,\pi^{-i}}(\mu_X)
+    -
+    V^i_\pi(\mu_X)
+  \right].
+  \label{eq:pointed-orbit-gap}
+\end{align}
+Here $(\chi\circ z_i^X)(b\mid x):=\chi(b\mid z_i^X(x))$, and $\mu_X$ is the
+initial distribution of $X$.  A \emph{pointed-orbit shared solver} keeps every
+iterate in the class
+$\pi^i(b\mid x)=\psi(b\mid z_i^X(x))$.  For a fixed such solver, a function
+$T_{\mathrm{sh}}(\epsilon,S,D;\vartheta)$ is a \emph{uniform shared
+certificate} if, for any fixed agent $i$,
+\begin{align}
+  T\ge T_{\mathrm{sh}}\!\left(
+    \epsilon,\abs{\mathcal S_X},\abs{\mathcal Z_X};\vartheta
+  \right)
+  \quad\Longrightarrow\quad
+  \min_{0\le t<T}
+  \mathrm{OrbGap}_X^i(\pi_t)\le\epsilon.
+  \label{eq:uniform-shared-rate-profile}
+\end{align}
+Here $S=\abs{\mathcal S_X}$, $D=\abs{\mathcal Z_X}$, and $\vartheta$ again
+collects all common hypotheses and bounds.  For the present game,
+$\mathcal Z_M=\mathcal Z$ and $z_i^M=z_i$.
+
+\begin{theorem}[Exact agent-permutation sharing and unrestricted best responses]
+\label{thm:exact-permutation-sharing}
+Let $M$ be an MPG satisfying
+\Cref{assumption:permutation-structure}. Then:
+\begin{enumerate}[label=\arabic*.,leftmargin=2.0em,itemsep=2pt,topsep=2pt]
+  \item The concrete pair
+  $(s^i,\{\!\{s^k:k\ne i\}\!\})$ uniquely represents $z_i(s)$.
+  Permutation-invariant product policies are exactly pointed-orbit shared
+  policies, so \eqref{eq:shared-rule} is a bijection between rules on
+  $\mathcal Z$ and policies in $\Pi_{\Sym_N}(M)$.
+
+  \item For every $\pi\in\Pi_{\Sym_N}(M)$ and any fixed agent $i$, against the
+  invariant opponents $\pi^{-i}$, an
+  unrestricted optimal stationary response can be chosen in shared form:
+  \begin{align}
+    \max_{\nu^i:\St\to\Delta(\mathcal B)}
+    V^i_{\nu^i,\pi^{-i}}(\mu)
+    =
+    \max_{\chi:\mathcal Z\to\Delta(\mathcal B)}
+    V^i_{\chi\circ z_i,\pi^{-i}}(\mu).
+    \label{eq:perm-best-response-reduction}
+  \end{align}
+  The best-response gains are equal across agents. Hence, for every $i$,
+  \begin{align}
+    \Nash_M(\pi)
+    =
+    \max_{\chi:\mathcal Z\to\Delta(\mathcal B)}
+    \left[
+      V^i_{\chi\circ z_i,\pi^{-i}}(\mu)
+      -
+      V^i_\pi(\mu)
+    \right].
+    \label{eq:perm-nash-reduction}
+  \end{align}
+  This is the ordinary Nash gap from \Cref{def:nash}, whose definition allows
+  every stationary local deviation.
+
+  \item \label{item:permutation-rate-transfer}
+  If a pointed-orbit shared solver has the uniform certificate above on a
+  class containing $M$, then its iterates on $M$ satisfy
+  \begin{align}
+    \min_{0\le t<T}\Nash_M(\pi_t)
+    \le\epsilon
+    \quad\text{whenever}\quad
+    T\ge
+    T_{\mathrm{sh}}\!\left(
+      \epsilon,\abs{\mathcal C}^{N},\abs{\mathcal Z};\vartheta
+    \right).
+    \label{eq:permutation-black-box-rate}
+  \end{align}
+  For a bound comparison, additionally suppose that the rate analysis is
+  \emph{orbit compatible}: an untied counterpart controls the ordinary Nash
+  gap with the same certificate form when
+  $D=N\abs{\mathcal S_X}$, the shared implementation controls
+  \eqref{eq:pointed-orbit-gap} with $D=\abs{\mathcal Z_X}$, and both have
+  sufficient budgets of the form
+  \begin{align*}
+    B_{\mathrm{mode}}(\epsilon)
+    =
+    C_{\mathrm{mode}}(\vartheta)
+    S^\alpha D_{\mathrm{mode}}^\delta\epsilon^{-p},
+    \qquad
+    \alpha,\delta,p\ge0,
+  \end{align*}
+  where
+  $D_{\mathrm{full}}=N\abs{\mathcal S_X}$ and
+  $D_{\mathrm{perm}}=\abs{\mathcal Z_X}$.
+  Assume the positive prefactors satisfy
+  $C_{\mathrm{perm}}(\vartheta)\le C_{\mathrm{full}}(\vartheta)$.
+  Then
+  \begin{align}
+    \frac{B_{\mathrm{perm}}(\epsilon)}
+         {B_{\mathrm{full}}(\epsilon)}
+    \le
+    \left(
+      \frac{
+        \abs{\mathcal Z}
+      }{
+        N\abs{\mathcal C}^{N}
+      }
+    \right)^\delta.
+    \label{eq:permutation-block-rate-factor}
+  \end{align}
+  Exact symmetry gives the transfer in
+  \eqref{eq:permutation-black-box-rate}; it does not by itself imply orbit
+  compatibility. In particular, constants affected by orbit multiplicities
+  must be absorbed into $C_{\mathrm{mode}}$, and the prefactor inequality is
+  an additional assumption. The ratio compares sufficient iteration bounds,
+  not realized runtime.
+\end{enumerate}
+\end{theorem}
+
+\paragraph{Proof idea.}
+A permutation-invariant local policy is constant on the orbit of the pointed
+state $(i,s)$, which gives the shared-rule representation. For a fixed agent
+$i$, the best-response MDP is symmetric under the permutations that fix $i$;
+their state orbits are exactly the fibers of $z_i$. A symmetric optimal response
+therefore exists, while relabeling agents shows that every agent has the same
+best-response gain. This converts the shared solver's pointed-orbit gap into the
+ordinary Nash gap. Formal proofs and supporting equivariance identities are in
+\Cref{app:proof-perm-sharing,app:proof-perm-equivariance,app:proof-perm-best-response,app:proof-perm-rate-transfer}.
+
+\begin{remark}[Sharing rather than a state quotient]
+\label{rem:permutation-not-quotient}
+The orbit $z_i(s)$ depends on a focal agent. Thus
+\Cref{thm:exact-permutation-sharing} does not replace the original game by a
+Markov game on $\mathcal Z$ and does not require a unilateral deviator to preserve
+global permutation invariance. It says that invariant product policies have one
+shared representation and that, at such a policy, a best response for agent $i$
+can be chosen invariant under permutations that fix $i$.
+\end{remark}
+
+\begin{remark}[Automatic potential invariance]
+\label{rem:perm-potential-automatic}
+In a fully cooperative game with $r^i\equiv r$, the choice $\phi=r$ is
+permutation invariant whenever the common reward is. More generally, if
+$\phi(s,a)=N^{-1}\sum_i r^i(s,a)$ is a valid MPG potential, then
+\eqref{eq:perm-reward} makes it permutation invariant by reindexing the sum over
+agents.
+\end{remark}
+
+\section{Combining State Quotients and Agent-Permutation Sharing}
+\label{sec:combined-reductions}
+
+The two reductions can be composed when the state-only symmetry is compatible
+with agent relabeling. Commutativity is the condition that makes agent
+permutations well defined after passing to state orbits.
+
+\begin{assumption}[Commuting state and agent symmetries]
+\label{assumption:commuting-symmetries}
+Suppose $M$ satisfies both the $G$-state-symmetry conditions in
+\Cref{def:g-symmetric-mg,assumption:symmetry} and the homogeneous
+agent-permutation conditions in \Cref{assumption:permutation-structure}. Assume
+also that
+\begin{align}
+  L_g[\sigma\mathbin{\cdot}s]
+  =
+  \sigma\mathbin{\cdot}L_g[s]
+  \qquad
+  \text{for every $g\in G$, $\sigma\in\Sym_N$, and $s\in\St$.}
+  \label{eq:commuting-state-actions}
+\end{align}
+\end{assumption}
+
+Under \eqref{eq:commuting-state-actions}, $G\times\Sym_N$ acts on pointed states
+by
+\begin{align*}
+  (g,\sigma)\mathbin{\cdot}(i,s)
+  :=
+  \big(\sigma(i),L_g[\sigma\mathbin{\cdot}s]\big).
+\end{align*}
+Define the combined pointed-orbit space and map by
+\begin{align}
+  \mathcal W
+  &:=
+  (\N\times\St)/(G\times\Sym_N),&
+  w_i(s)
+  &:=
+  \orbit{(i,s)}_{G\times\Sym_N}.
+  \label{eq:combined-descriptor}
+\end{align}
+For $\chi:\mathcal W\to\Delta(\mathcal B)$, write
+$(\chi\circ w_i)(b\mid s):=\chi(b\mid w_i(s))$.
+A product policy is \emph{jointly invariant} if it is both $G$ invariant in
+the sense of \Cref{def:g-invariant-policy} and permutation invariant in the
+sense of \Cref{def:permutation-invariant-policy}.
+
+\begin{theorem}[Commuting reductions and double transfer]
+\label{thm:combined-reductions}
+Let $M$ be an MPG under
+\Cref{assumption:standing,assumption:commuting-symmetries}. Then:
+\begin{enumerate}[label=\arabic*.,leftmargin=2.0em,itemsep=2pt,topsep=2pt]
+  \item Agent permutations descend to the state quotient through
+  \begin{align*}
+    \sigma\mathbin{\cdot}\bar s
+    :=
+    \rho(\sigma\mathbin{\cdot}s),
+    \qquad s\in\bar s,
+  \end{align*}
+  and $\quotient M$ is permutation symmetric under this action. Moreover,
+  \begin{align}
+    \mathcal W
+    \cong
+    \big(\N\times(\St/G)\big)/\Sym_N
+    \cong
+    \mathcal Z/G,
+    \label{eq:combined-orbit-isomorphism}
+  \end{align}
+  where the induced action on $\mathcal Z$ is
+  $g\mathbin{\cdot}\orbit{(i,s)}_{\Sym_N}
+  :=\orbit{(i,L_g[s])}_{\Sym_N}$.
+
+  \item Jointly invariant policies are exactly the policies represented by one
+  rule $\psi:\mathcal W\to\Delta(\mathcal B)$ through
+  $\pi^i(b\mid s)=\psi(b\mid w_i(s))$. At every such policy and for every
+  fixed agent $i$,
+  \begin{align}
+    \Nash_M(\pi)
+    =
+    \max_{\chi:\mathcal W\to\Delta(\mathcal B)}
+    \left[
+      V^i_{\chi\circ w_i,\pi^{-i}}(\mu)
+      -
+      V^i_\pi(\mu)
+    \right].
+    \label{eq:combined-nash-reduction}
+  \end{align}
+  Thus the maximization still represents the unrestricted Nash gap.
+
+  \item Let a pointed-orbit shared solver have the uniform certificate
+  $T_{\mathrm{sh}}(\epsilon,S,D;\vartheta)$ from
+  \eqref{eq:uniform-shared-rate-profile} on a class containing $\quotient M$.
+  Run it on $\quotient M$, whose pointed-orbit space is $\mathcal W$ by
+  \eqref{eq:combined-orbit-isomorphism}, and lift its iterates to $M$. Then
+  \begin{align}
+    \min_{0\le t<T}\Nash_M(\pi_t)
+    \le\epsilon
+    \quad\text{whenever}\quad
+    T\ge
+    T_{\mathrm{sh}}\!\left(
+      \epsilon,\abs{\quotient\St},\abs{\mathcal W};\vartheta
+    \right).
+    \label{eq:combined-black-box-rate}
+  \end{align}
+  Suppose additionally that the orbit-compatible untied/shared certificate from
+  \Cref{thm:exact-permutation-sharing} applies to both $M$ and $\quotient M$,
+  with common exponents $\alpha,\delta,p\ge0$. Write the four sufficient
+  budgets as
+  \begin{align*}
+    B_{\mathrm{mode}}(\epsilon)
+    =
+    C_{\mathrm{mode}}(\vartheta)
+    S_{\mathrm{mode}}^\alpha D_{\mathrm{mode}}^\delta\epsilon^{-p},
+  \end{align*}
+  where the state and policy-block counts are
+  \begin{align*}
+    \begin{array}{c|cccc}
+      \mathrm{mode}
+      &\mathrm{full}&\mathrm{perm}&\mathrm{quot}&\mathrm{both}\\ \hline
+      S_{\mathrm{mode}}
+      &\abs\St&\abs\St&\abs{\quotient\St}&\abs{\quotient\St}\\
+      D_{\mathrm{mode}}
+      &N\abs\St&\abs{\mathcal Z}
+      &N\abs{\quotient\St}&\abs{\mathcal W}.
+    \end{array}
+  \end{align*}
+  Here ``perm'' means permutation sharing only, ``quot'' means the untied
+  state quotient only, and ``both'' means their composition. Assume the
+  positive prefactors satisfy
+  \begin{align*}
+    C_{\mathrm{both}}(\vartheta)
+    \le
+    \min\left\{
+      C_{\mathrm{full}}(\vartheta),
+      C_{\mathrm{perm}}(\vartheta),
+      C_{\mathrm{quot}}(\vartheta)
+    \right\}.
+  \end{align*}
+  The sufficient bounds then satisfy
+  \begin{align}
+    \frac{B_{\mathrm{both}}(\epsilon)}
+         {B_{\mathrm{full}}(\epsilon)}
+    &\le
+    \left(
+      \frac{\abs{\quotient\St}}{\abs\St}
+    \right)^\alpha
+    \left(
+      \frac{\abs{\mathcal W}}{\abs{\mathcal Z}}
+    \right)^\delta
+    \left(
+      \frac{\abs{\mathcal Z}}{N\abs\St}
+    \right)^\delta,
+    \label{eq:combined-full-rate-factor}\\
+    \frac{B_{\mathrm{both}}(\epsilon)}
+         {B_{\mathrm{perm}}(\epsilon)}
+    &\le
+    \left(
+      \frac{\abs{\quotient\St}}{\abs\St}
+    \right)^\alpha
+    \left(
+      \frac{\abs{\mathcal W}}{\abs{\mathcal Z}}
+    \right)^\delta
+    \le1.
+    \label{eq:combined-perm-rate-factor}\\
+    \frac{B_{\mathrm{both}}(\epsilon)}
+         {B_{\mathrm{quot}}(\epsilon)}
+    &\le
+    \left(
+      \frac{\abs{\mathcal W}}
+           {N\abs{\quotient\St}}
+    \right)^\delta
+    \le1.
+    \label{eq:combined-quot-rate-factor}
+  \end{align}
+  Thus the first bound separates the permutation-only block reduction from
+  the two additional reductions obtained by quotienting the Markov states and
+  the shared policy blocks; the latter two bounds show that adding either
+  reduction to the other is non-worsening under the stated certificate and
+  prefactor assumptions.
+  The required prefactor inequalities are assumptions on the convergence
+  analysis, not consequences of symmetry.
+  If $G$ acts freely on $\St$ and its induced action on $\mathcal Z$ is also
+  free, both
+  $\abs{\quotient\St}/\abs\St$ and
+  $\abs{\mathcal W}/\abs{\mathcal Z}$ equal $\abs G^{-1}$, so
+  \begin{align}
+    \frac{B_{\mathrm{both}}(\epsilon)}
+         {B_{\mathrm{perm}}(\epsilon)}
+    &\le
+    \abs G^{-(\alpha+\delta)},
+    \label{eq:combined-free-perm-factor}\\
+    \frac{B_{\mathrm{both}}(\epsilon)}
+         {B_{\mathrm{full}}(\epsilon)}
+    &\le
+    \abs G^{-(\alpha+\delta)}
+    \left(
+      \frac{\abs{\mathcal Z}}{N\abs\St}
+    \right)^\delta.
+    \label{eq:combined-free-rate-factor}
+  \end{align}
+\end{enumerate}
+\end{theorem}
+
+\paragraph{Proof idea.}
+Commutativity lets agent permutations act on $G$-orbits, so quotienting states
+and then taking pointed-state orbits identifies the same classes as the direct
+$G\times\Sym_N$ action. At a jointly invariant policy, a focal agent's
+best-response MDP is symmetric under $G$ and the agent permutations that fix
+that agent. The resulting invariant optimal response is constant on the fibers
+of $w_i$. Running the shared solver on the quotient and lifting its iterates
+then combines the two exact Nash-gap identities. The detailed orbit and rate
+calculations are given in \Cref{app:proof-combined-reductions}.
+
+\section{Generative-Model Sample Complexity Through the Reductions}
+\label{sec:sample-complexity}
+
+The rate transfers in
+\Cref{thm:exact-quotient,thm:exact-permutation-sharing,thm:combined-reductions}
+concern iteration complexity: they substitute quotient sizes into the
+certificate of an abstract convergence theorem while the game itself is treated
+as known. This section gives a second, statistical application of the
+exact reductions. When the transition kernel is unknown and must be estimated
+from samples, both symmetries compress the estimation problem, in different
+factors: the state quotient shrinks the estimand itself, so the sufficient
+data budget scales with $\abs{\quotient\St}$ rather than $\abs\St$, while
+agent-permutation symmetry makes entire rows of the kernel relabelings of one
+another, so the number of rows that must be estimated drops from exponential
+to polynomial in $N$. The two improvements compound under
+\Cref{assumption:commuting-symmetries}.
+
+\paragraph{Sampling model.}
+Fix a $G$-state-symmetric MPG $M$ satisfying
+\Cref{assumption:standing,assumption:symmetry}. The learner has
+\emph{generative-model} access to $M$: for any queried pair
+$(s,a)\in\St\times\Ac$, it observes an independent draw
+$s'\sim P(\cdot\mid s,a)$. The learner knows the group action, hence the orbit
+map $\rho$ and the representatives $\iota$, and can evaluate the potential
+$\phi$ at queried pairs; the kernel $P$ is unknown. In the fully cooperative
+case $r^i\equiv r$ with $\phi=r$, evaluating $\phi$ amounts to observing the
+reward, so the last requirement is automatic;
+\Cref{rem:unknown-potential} treats estimated potentials. This access model is
+\emph{centralized}, as is standard in model-based sample-complexity analyses
+of Markov games \citep{zhang2020modelbased,subramanian2023robustness}: a
+single learner selects joint queries, evaluates the global potential, plans
+over joint actions, and dispatches the resulting joint policy.
+\Cref{rem:decentralized} discusses decentralization.
+
+\paragraph{Pooled orbit-level estimation.}
+For each quotient pair $(\bar s,a)\in\quotient\St\times\Ac$, query the
+representative pair $(\iota(\bar s),a)$ exactly $n$ times, observe independent
+draws $s'_1,\ldots,s'_n\sim P(\cdot\mid\iota(\bar s),a)$, and set
+\begin{align}
+  \hatP(\bar s'\mid\bar s,a)
+  :=
+  \frac1n\sum_{k=1}^n\mathbf 1\{s'_k\in\bar s'\}.
+  \label{eq:pooled-estimator}
+\end{align}
+Because
+$\quotient P(\bar s'\mid\bar s,a)=\Pr[s'\in\bar s'\,]$ for a draw
+$s'\sim P(\cdot\mid\iota(\bar s),a)$, the estimator is unbiased for the
+quotient kernel, and by \Cref{lemma:quotient-well-posed} the queried
+representative may be replaced by any orbit member without changing the
+estimand. The total query budget is $n\abs{\quotient\St}\abs\Ac$.
+
+\paragraph{Certainty-equivalent potential planning.}
+The \emph{potential MDP} of the quotient is the single-controller MDP with
+state space $\quotient\St$, action space $\Ac$, reward $\quotient\phi$, kernel
+$\quotient P$, and discount $\gamma$; the value function it assigns to a
+stationary product policy $\bar\pi$ is the total potential
+$\Potbar_{\bar\pi}$. The \emph{empirical} potential MDP replaces
+$\quotient P$ by $\hatP$, and $\hatPot_{\bar\pi}$ denotes its value functions.
+The planner computes a stationary deterministic policy
+$\pice:\quotient\St\to\Ac$ that is optimal for the empirical potential MDP,
+for instance by value iteration on $\hatP$ followed by greedy selection. A
+stationary deterministic joint policy assigns one joint action to each state
+and is therefore a product policy, so $\pice\in\Pi(\quotient M)$ and its lift
+$\pice^\uparrow$ is a $G$-invariant product policy on $M$. Recall
+$\Phi_{\min},\Phi_{\max}$ from \Cref{assumption:standing} and set
+\begin{align*}
+  \Phisup
+  :=
+  \max\{\abs{\Phi_{\min}},\abs{\Phi_{\max}}\}.
+\end{align*}
+
+\begin{theorem}[Generative-model sample complexity through the quotient]
+\label{thm:sample-complexity}
+Let $M$ be a $G$-state-symmetric MPG under
+\Cref{assumption:standing,assumption:symmetry}, let $\epsilon>0$ and
+$\delta\in(0,1)$, and let $\pice$ be computed from
+\eqref{eq:pooled-estimator} as above with per-pair budget $n$.
+\begin{enumerate}[label=\arabic*.,leftmargin=2.0em,itemsep=2pt,topsep=2pt]
+  \item \label{item:sample-complexity-bound}
+  If
+  \begin{align}
+    n
+    \ge
+    \frac{8\gamma^2\Phisup^2}{(1-\gamma)^2\epsilon^2}
+    \left(
+      \abs{\quotient\St}\log 2
+      +
+      \log\frac{\abs{\quotient\St}\abs\Ac}{\delta}
+    \right),
+    \label{eq:per-pair-budget}
+  \end{align}
+  then, with probability at least $1-\delta$ over the draws in
+  \eqref{eq:pooled-estimator},
+  \begin{align}
+    \Nash_M\big(\pice^\uparrow\big)
+    \le
+    \epsilon.
+    \label{eq:sample-nash-guarantee}
+  \end{align}
+  Consequently, the total number of generative-model queries that suffices is
+  \begin{align}
+    B^{\mathrm{gen}}(\epsilon,\delta;S,A)
+    :=
+    \frac{8\gamma^2\Phisup^2}{(1-\gamma)^2\epsilon^2}\,
+    SA
+    \left(
+      S\log 2
+      +
+      \log\frac{SA}{\delta}
+    \right),
+    \label{eq:total-budget}
+  \end{align}
+  evaluated at $S=\abs{\quotient\St}$ and $A=\abs\Ac$.
+
+  \item \label{item:sample-complexity-comparison}
+  The same construction applied with the trivial group $G=\{e\}$ runs directly
+  on $M$, uses no symmetry, and attains \eqref{eq:sample-nash-guarantee} with
+  sufficient budget $B^{\mathrm{gen}}(\epsilon,\delta;\abs\St,\abs\Ac)$. The
+  two sufficient budgets satisfy
+  \begin{align}
+    \frac{B^{\mathrm{gen}}(\epsilon,\delta;\abs{\quotient\St},\abs\Ac)}
+         {B^{\mathrm{gen}}(\epsilon,\delta;\abs\St,\abs\Ac)}
+    =
+    \frac{\abs{\quotient\St}}{\abs\St}
+    \cdot
+    \frac{\abs{\quotient\St}\log2
+          +\log(\abs{\quotient\St}\abs\Ac/\delta)}
+         {\abs\St\log2
+          +\log(\abs\St\abs\Ac/\delta)}
+    \le
+    \frac{\abs{\quotient\St}}{\abs\St}.
+    \label{eq:sample-ratio}
+  \end{align}
+  When the state-count terms dominate the logarithmic terms in both
+  parentheses, the ratio is $(\abs{\quotient\St}/\abs\St)^2$ up to that
+  logarithmic correction; if $G$ acts freely on $\St$, then
+  $\abs{\quotient\St}/\abs\St=\abs G^{-1}$. As elsewhere, this compares
+  sufficient sample-size bounds, not realized sample usage.
+\end{enumerate}
+\end{theorem}
+
+\paragraph{Proof idea.}
+Pooling makes each quotient row estimable at a single representative, and an
+$\ell_1$ concentration bound holds uniformly over quotient pairs. A simulation
+lemma for the potential MDP converts kernel error into a uniform error on
+total potentials, so the certainty-equivalent policy nearly maximizes the true
+quotient potential statewise. In an MPG, every unilateral deviation gain is a
+potential difference and is therefore controlled by the potential
+suboptimality, which bounds the quotient Nash gap. Exact Nash-gap preservation
+in \Cref{thm:exact-quotient} transfers the guarantee to $M$ unchanged. The
+full argument is in \Cref{app:proof-sample-complexity}.
+
+\paragraph{Pooling over state--action orbits.}
+The quotient construction shrinks the game being estimated. Agent-permutation
+symmetry admits no reduced game (\Cref{rem:permutation-not-quotient}), yet it
+still compresses the estimation problem: entire rows of the kernel are
+relabelings of one another. Let $X$ be a permutation-symmetric MPG in the
+sense of the shared-solver rate convention of \Cref{sec:agent-permutations},
+satisfying \Cref{assumption:standing}; the leading case is $X=M$ under
+\Cref{assumption:permutation-structure}. Let $\Sym_N$ act diagonally on
+state--action pairs by
+$\sigma\mathbin{\cdot}(x,a):=(\sigma\mathbin{\cdot}x,\sigma\mathbin{\cdot}a)$,
+and define the pair-orbit space and orbit map
+\begin{align*}
+  \mathcal Y_X
+  :=
+  (\mathcal S_X\times\mathcal B_X^N)/\Sym_N,
+  \qquad
+  y(x,a)
+  :=
+  \orbit{(x,a)}_{\Sym_N}.
+\end{align*}
+In the Cartesian model of \Cref{assumption:permutation-structure}, a pair
+orbit is the multiset $\{\!\{(s^k,a^k):k\in[N]\}\!\}$, so
+$\mathcal Y_M\cong\mathcal M_N(\mathcal C\times\mathcal B)$ and
+\begin{align*}
+  \abs{\mathcal Y_M}
+  =
+  \binom{\abs{\mathcal C}\abs{\mathcal B}+N-1}{N},
+\end{align*}
+polynomial in $N$ of degree $\abs{\mathcal C}\abs{\mathcal B}-1$, versus the
+$\abs\St\abs\Ac=(\abs{\mathcal C}\abs{\mathcal B})^N$ untied rows.
+
+\paragraph{Transported estimation.}
+Fix a representative $\jmath(\bar y)\in\bar y$ for each
+$\bar y\in\mathcal Y_X$ and, for every pair $(x,a)$, a transporting
+permutation $\tau_{x,a}\in\Sym_N$ with
+$\tau_{x,a}\mathbin{\cdot}\jmath(y(x,a))=(x,a)$, choosing
+$\tau_{x,a}=e$ whenever $(x,a)$ is itself the representative. For each orbit
+$\bar y$, query its representative pair $n$ times, observe independent draws
+$x'_1,\ldots,x'_n\sim P_X(\cdot\mid\jmath(\bar y))$, and let
+$\widehat{P}_X(\cdot\mid\jmath(\bar y))$ be the resulting empirical row. The
+\emph{transported estimator} extends the representative rows to every pair:
+\begin{align}
+  \trP(x'\mid x,a)
+  :=
+  \widehat{P}_X\big(
+    \tau_{x,a}^{-1}\mathbin{\cdot}x'
+    \,\big|\,
+    \jmath(y(x,a))
+  \big).
+  \label{eq:transported-estimator}
+\end{align}
+The total query budget is $n\abs{\mathcal Y_X}$. Potential invariance likewise
+determines $\phi_X$ everywhere from its values at the $\abs{\mathcal Y_X}$
+representatives. The planner computes a stationary deterministic policy
+$\pi_{\mathrm{ce}}$ optimal for the empirical potential MDP of $X$ with kernel
+$\trP$; as before, a stationary deterministic joint policy is a product
+policy.
+
+\begin{theorem}[Generative-model sample complexity through permutation pooling]
+\label{thm:perm-sample-complexity}
+Let $X$ be a permutation-symmetric MPG satisfying \Cref{assumption:standing},
+let $\epsilon>0$ and $\delta\in(0,1)$, and let $\pi_{\mathrm{ce}}$ be computed
+from \eqref{eq:transported-estimator} with per-orbit budget $n$.
+\begin{enumerate}[label=\arabic*.,leftmargin=2.0em,itemsep=2pt,topsep=2pt]
+  \item \label{item:perm-sample-bound}
+  If
+  \begin{align}
+    n
+    \ge
+    \frac{8\gamma^2\Phisup^2}{(1-\gamma)^2\epsilon^2}
+    \left(
+      \abs{\mathcal S_X}\log 2
+      +
+      \log\frac{\abs{\mathcal Y_X}}{\delta}
+    \right),
+    \label{eq:perm-per-orbit-budget}
+  \end{align}
+  then, with probability at least $1-\delta$,
+  $\Nash_X(\pi_{\mathrm{ce}})\le\epsilon$. The sufficient total query budget
+  is
+  \begin{align}
+    B^{\mathrm{pool}}(\epsilon,\delta;X)
+    :=
+    \frac{8\gamma^2\Phisup^2}{(1-\gamma)^2\epsilon^2}\,
+    \abs{\mathcal Y_X}
+    \left(
+      \abs{\mathcal S_X}\log 2
+      +
+      \log\frac{\abs{\mathcal Y_X}}{\delta}
+    \right).
+    \label{eq:perm-total-budget}
+  \end{align}
+
+  \item \label{item:perm-sample-comparison}
+  The untied construction of
+  \Cref{thm:sample-complexity}\ref{item:sample-complexity-comparison} applied
+  to $X$ has sufficient budget
+  $B^{\mathrm{gen}}(\epsilon,\delta;\abs{\mathcal S_X},
+  \abs{\mathcal B_X}^N)$. The sufficient budgets satisfy
+  \begin{align}
+    \frac{B^{\mathrm{pool}}(\epsilon,\delta;X)}
+         {B^{\mathrm{gen}}(\epsilon,\delta;\abs{\mathcal S_X},
+          \abs{\mathcal B_X}^N)}
+    =
+    \frac{\abs{\mathcal Y_X}}
+         {\abs{\mathcal S_X}\abs{\mathcal B_X}^N}
+    \cdot
+    \frac{\abs{\mathcal S_X}\log2
+          +\log(\abs{\mathcal Y_X}/\delta)}
+         {\abs{\mathcal S_X}\log2
+          +\log(\abs{\mathcal S_X}\abs{\mathcal B_X}^N/\delta)}
+    \le
+    \frac{\abs{\mathcal Y_X}}
+         {\abs{\mathcal S_X}\abs{\mathcal B_X}^N}.
+    \label{eq:perm-sample-ratio}
+  \end{align}
+  Unlike \eqref{eq:sample-ratio}, the leading terms
+  $\abs{\mathcal S_X}\log2$ coincide because the next-state space does not
+  shrink, so the ratio equals the row-count ratio up to a correction confined
+  to the lower-order logarithm. For $X=M$ in the Cartesian model, the
+  row-count ratio is
+  $\binom{\abs{\mathcal C}\abs{\mathcal B}+N-1}{N}
+  \big/(\abs{\mathcal C}\abs{\mathcal B})^N$. As elsewhere, this compares
+  sufficient sample-size bounds, not realized sample usage.
+\end{enumerate}
+\end{theorem}
+
+\begin{corollary}[Combined pooling through the quotient]
+\label{cor:combined-sample}
+Let $M$ satisfy
+\Cref{assumption:standing,assumption:commuting-symmetries}. Then, with
+probability at least $1-\delta$,
+\begin{align*}
+  \Nash_M\big(\pice^\uparrow\big)
+  \le
+  \epsilon
+  \quad\text{whenever}\quad
+  n
+  \ge
+  \frac{8\gamma^2\Phisup^2}{(1-\gamma)^2\epsilon^2}
+  \left(
+    \abs{\quotient\St}\log 2
+    +
+    \log\frac{\abs{\mathcal Y_{\quotient M}}}{\delta}
+  \right),
+\end{align*}
+where now $\pice$ is the certainty-equivalent policy computed from the
+transported estimator on $X=\quotient M$, whose generative model is obtained
+from that of $M$ by querying orbit representatives and recording next-state
+orbits as in \eqref{eq:pooled-estimator}, and the total query budget is
+$n\abs{\mathcal Y_{\quotient M}}$. The two reductions compound in different
+factors: the quotient shrinks the next-state space from $\abs\St$ to
+$\abs{\quotient\St}$, while pooling shrinks the row count from
+$\abs{\quotient\St}\abs\Ac$ to $\abs{\mathcal Y_{\quotient M}}$.
+\end{corollary}
+
+\paragraph{Proof idea.}
+Fixing one transporting permutation per pair turns the symmetry identity
+\eqref{eq:perm-transition} into an exact reconstruction rule: transported rows
+have the same $\ell_1$ error as their representative rows, so uniform
+concentration is needed only over the $\abs{\mathcal Y_X}$ representatives.
+The simulation, optimality-transfer, and Nash-gap lemmas of the quotient
+argument apply verbatim because they use only a uniform kernel error and the
+total-potential bounds; the corollary applies the pooled pipeline to
+$\quotient M$, which is permutation symmetric by
+\Cref{thm:combined-reductions}, and adds the exact lift of
+\Cref{thm:exact-quotient}. Details are in
+\Cref{app:proof-sample-complexity}.
+
+\begin{remark}[The estimated models need not be MPGs]
+\label{rem:estimated-not-mpg}
+Sampling noise breaks the exact potential structure: the games obtained by
+equipping $\quotient M$ with $\hatP$, or $X$ with $\trP$, generally admit no
+potential, so a solver whose certificate presupposes membership in the MPG
+class cannot simply be run on the estimated game. Certainty-equivalent
+potential planning sidesteps this: value iteration on the empirical potential
+MDP is a single-agent computation that does not require the estimated game to
+be a potential game, and the analysis compares total potentials only under the
+true kernel. For the transported estimator this also means that exact symmetry
+of $\trP$ is unnecessary: when a pair has a nontrivial stabilizer, the
+empirical representative row need not be stabilizer invariant, so $\trP$ is
+determined by the chosen transports rather than being exactly
+$\Sym_N$ invariant, and the argument never uses invariance of the estimate.
+Alternatively, a model-to-Nash-gap stability lemma would let an arbitrary MPG
+solver run on a nearby exact model; the present constructions avoid the need
+for such a lemma.
+\end{remark}
+
+\begin{remark}[Trajectory data and orbit-level coverage]
+\label{rem:orbit-coverage}
+With trajectory rather than generative access, the estimator
+\eqref{eq:pooled-estimator} extends by pooling every observed transition from
+any state in the orbit $\bar s$ under action $a$; representative independence
+(\Cref{lemma:quotient-well-posed}) again makes the pooled estimand equal to
+$\quotient P(\cdot\mid\bar s,a)$. The pair $(\bar s,a)$ is then estimable as
+soon as the data visit any orbit member, so coverage requirements weaken from
+state--action coverage to orbit--action coverage. Quantifying this under a
+specific data-collection process requires a concentration argument for
+dependent visits and is not pursued here.
+\end{remark}
+
+\begin{remark}[Scope: statistical versus computational savings]
+\label{rem:sample-scope}
+The savings established in this section are statistical. In every mode, the
+planning step enumerates joint actions, so its computational cost scales with
+the action count, which equals $\abs{\mathcal B}^N$ under
+\Cref{assumption:permutation-structure}. Moreover, the policy returned by
+transported-estimation planning is a deterministic product policy that need
+not be permutation invariant: a deterministic invariant policy can be strictly
+suboptimal for the potential MDP when agents share identical local states, so
+requiring shared output may conflict with deterministic planning. This is
+consistent with \Cref{rem:permutation-not-quotient}: permutation symmetry is
+exploited here for estimation, not through a reduced game. A planner that
+exploits action symmetry, and shared or mixed certainty-equivalent outputs,
+are left open.
+\end{remark}
+
+\begin{remark}[Toward a decentralized generative model]
+\label{rem:decentralized}
+Every ingredient of the pipeline is centralized: query selection is joint,
+the potential is a global quantity that no single agent observes outside the
+cooperative case $\phi=r$, planning is a single computation over joint
+actions, and executing the returned deterministic policy requires assigning
+roles. This matches the system-planner convention of model-based
+sample-complexity analyses for Markov games
+\citep{zhang2020modelbased,subramanian2023robustness}. The variant in which
+each agent draws its own samples and computes its own solution is identified
+as open by \citet{subramanian2023robustness}, the obstruction being that
+independently estimated games can have different equilibria. Existing
+decentralized guarantees for MPGs instead assume online trajectory access
+\citep{leonardos2022global,fox2022independent,ding2022independent,zhang2021gradient,maheshwari2022independent},
+extended recently to partial observability \citep{jordan2026partially}, or
+target weaker equilibrium notions \citep{jin2021vlearning,mao2022improving},
+or require coordination between players \citep{song2022when}. The present
+pipeline suggests an intermediate regime: certainty-equivalent potential
+planning with a fixed tie-breaking rule is a deterministic map from data to
+joint policy, so under broadcast samples or shared randomness every agent
+computes the same joint policy and executes its own coordinate, which removes
+the equilibrium-selection ambiguity while decentralizing execution. Fully
+independent sampling remains open, and \Cref{rem:sample-scope} adds a
+symmetric obstruction: a shared deterministic rule can be strictly
+suboptimal, so a fully decentralized symmetric planner would need mixed
+shared rules or a correlation device.
+\end{remark}
+
+\begin{remark}[Estimated potentials]
+\label{rem:unknown-potential}
+If $\phi$ is bounded and only sample access to it is available, replacing
+$\quotient\phi$ by an empirical potential with uniform error
+$\varepsilon_\phi$ adds $2\varepsilon_\phi/(1-\gamma)$ to the guarantee
+\eqref{eq:sample-nash-guarantee} through the same simulation argument, a
+lower-order modification.
+\end{remark}
+
+\bibliography{references}
+\bibliographystyle{iclr2027_conference}
+
+\clearpage
+\appendix
+
+\section{Well-Posedness of the Quotient Markov Game}
+\label{app:proof-quotient-well-posed}
+
+\begin{lemma}[Well-posed quotient data]
+\label{lemma:quotient-well-posed}
+Let $M$ be a $G$-state-symmetric MPG satisfying \Cref{assumption:symmetry}.
+Then the quotient data in \Cref{def:quotient-mg} are independent of the
+representative $s\in\bar s$. Moreover,
+$\quotient P(\cdot\mid\bar s,a)\in\Delta(\quotient\St)$ for every
+$(\bar s,a)$ and $\quotient\mu\in\Delta(\quotient\St)$.
+\end{lemma}
+
+\begin{proof}
+Let $s,\widetilde s\in\bar s$. There is a $g\in G$ such that
+$\widetilde s=L_g[s]$. For every next-state orbit $\bar s'$, the map
+$u\mapsto L_g[u]$ is a bijection from $\bar s'$ to itself. Reindexing the orbit
+sum and using transition equivariance,
+\begin{align*}
+  \sum_{u\in\bar s'}P(u\mid\widetilde s,a)
+  &=
+  \sum_{u\in\bar s'}P(L_g[u]\mid L_g[s],a)\\
+  &=
+  \sum_{u\in\bar s'}P(u\mid s,a).
+\end{align*}
+Thus \eqref{eq:quotient-transition} is independent of the representative.
+Reward and potential invariance similarly give
+\begin{align*}
+  r^i(\widetilde s,a)
+  &=
+  r^i(s,a),&
+  \phi(\widetilde s,a)
+  &=
+  \phi(s,a),
+\end{align*}
+so \eqref{eq:quotient-reward} and \eqref{eq:quotient-potential} are also
+representative-independent. The definition of $\quotient\mu$ already sums over
+the full orbit and contains no representative choice.
+
+The state orbits partition $\St$. Hence, for any representative $s\in\bar s$,
+\begin{align*}
+  \sum_{\bar s'\in\quotient\St}
+  \quotient P(\bar s'\mid\bar s,a)
+  &=
+  \sum_{\bar s'\in\quotient\St}
+  \sum_{s'\in\bar s'}P(s'\mid s,a)\\
+  &=
+  \sum_{s'\in\St}P(s'\mid s,a)
+  =
+  1.
+\end{align*}
+Every term is nonnegative, so
+$\quotient P(\cdot\mid\bar s,a)\in\Delta(\quotient\St)$. Likewise,
+\begin{align*}
+  \sum_{\bar s\in\quotient\St}\quotient\mu(\bar s)
+  =
+  \sum_{\bar s\in\quotient\St}\sum_{s\in\bar s}\mu(s)
+  =
+  \sum_{s\in\St}\mu(s)
+  =
+  1,
+\end{align*}
+and $\quotient\mu$ is nonnegative. Thus $\quotient\mu\in\Delta(\quotient\St)$.
+\end{proof}
+
+\section{Policy Correspondence and Value Equivalence}
+\label{app:proof-policy-correspondence}
+
+\begin{lemma}[Policy correspondence and value equivalence]
+\label{lemma:policy-correspondence}
+Let $M$ be a $G$-state-symmetric Markov game and let $\quotient M$ be its
+quotient. Then the lift and projection satisfy:
+\begin{enumerate}[label=(\alph*),leftmargin=2.2em,itemsep=2pt]
+  \item \label{item:lift-invariant}
+  The maps $\bar\pi\mapsto\bar\pi^\uparrow$ and
+  $\pi\mapsto\pi^\downarrow$ are mutually inverse bijections between
+  $\Pi(\quotient M)$ and $\Pi_G(M)$.
+  \item \label{item:value-equivalence}
+  For every $\bar\pi\in\Pi(\quotient M)$, agent $i$, state $s$, and joint action
+  $a$,
+  \begin{align}
+    V^i_{\bar\pi^\uparrow}(s)
+    &=
+    \Vbar^i_{\bar\pi}(\rho(s)),&
+    Q^i_{\bar\pi^\uparrow}(s,a)
+    &=
+    \Qbar^i_{\bar\pi}(\rho(s),a).
+    \label{eq:value-equivalence}
+  \end{align}
+  Consequently,
+  $V^i_{\bar\pi^\uparrow}(\mu)=\Vbar^i_{\bar\pi}(\quotient\mu)$.
+  \item \label{item:visitation-equivalence}
+  For every $\bar\pi\in\Pi(\quotient M)$ and $\bar s\in\quotient\St$,
+  \begin{align}
+    \dbar^{\bar\pi}_{\quotient\mu}(\bar s)
+    =
+    \sum_{s\in\bar s}d^{\bar\pi^\uparrow}_\mu(s).
+    \label{eq:visitation-equivalence}
+  \end{align}
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+For every $g\in G$,
+$\rho(L_g[s])=\rho(s)$. Therefore
+\begin{align*}
+  \bar\pi^{\uparrow,i}(a^i\mid L_g[s])
+  =
+  \bar\pi^i(a^i\mid\rho(L_g[s]))
+  =
+  \bar\pi^i(a^i\mid\rho(s))
+  =
+  \bar\pi^{\uparrow,i}(a^i\mid s),
+\end{align*}
+so every lift is $G$ invariant. The projection is well defined because an
+invariant policy is constant on each orbit. Direct substitution gives
+\begin{align*}
+  (\bar\pi^\uparrow)^\downarrow
+  &=
+  \bar\pi,&
+  (\pi^\downarrow)^\uparrow
+  &=
+  \pi
+  \qquad
+  \text{for every $\pi\in\Pi_G(M)$.}
+\end{align*}
+This proves part \ref{item:lift-invariant}.
+
+Fix a quotient policy $\bar\pi$ and write $\pi=\bar\pi^\uparrow$. Define
+\begin{align*}
+  \widetilde V^i(s)
+  :=
+  \Vbar^i_{\bar\pi}(\rho(s)).
+\end{align*}
+Using $\pi(a\mid s)=\bar\pi(a\mid\rho(s))$ and the quotient definitions,
+\begin{align*}
+  \widetilde V^i(s)
+  &=
+  \sum_a\bar\pi(a\mid\rho(s))
+  \left[
+    \quotient r^{\,i}(\rho(s),a)
+    +
+    \gamma
+    \sum_{\bar s'}
+    \quotient P(\bar s'\mid\rho(s),a)
+    \Vbar^i_{\bar\pi}(\bar s')
+  \right]\\
+  &=
+  \sum_a\pi(a\mid s)
+  \left[
+    r^i(s,a)
+    +
+    \gamma
+    \sum_{\bar s'}
+    \sum_{s'\in\bar s'}
+    P(s'\mid s,a)\widetilde V^i(s')
+  \right]\\
+  &=
+  \sum_a\pi(a\mid s)
+  \left[
+    r^i(s,a)
+    +
+    \gamma
+    \sum_{s'\in\St}P(s'\mid s,a)\widetilde V^i(s')
+  \right].
+\end{align*}
+Thus $\widetilde V^i$ is a fixed point of the Bellman evaluation operator for
+$\pi$ on $M$. That operator is a $\gamma$-contraction, so its fixed point is
+unique and $\widetilde V^i=V^i_\pi$. Substituting this value identity into the
+one-step action-value equations gives
+\begin{align*}
+  Q^i_\pi(s,a)
+  &=
+  r^i(s,a)+\gamma\sum_{s'}P(s'\mid s,a)V^i_\pi(s')\\
+  &=
+  \quotient r^{\,i}(\rho(s),a)
+  +
+  \gamma\sum_{\bar s'}
+  \quotient P(\bar s'\mid\rho(s),a)
+  \Vbar^i_{\bar\pi}(\bar s')\\
+  &=
+  \Qbar^i_{\bar\pi}(\rho(s),a).
+\end{align*}
+This proves \eqref{eq:value-equivalence}. Averaging its value identity over
+$s\sim\mu$ and grouping by state orbit yields
+\begin{align*}
+  V^i_{\bar\pi^\uparrow}(\mu)
+  &=
+  \sum_{\bar s}
+  \sum_{s\in\bar s}
+  \mu(s)\Vbar^i_{\bar\pi}(\bar s)\\
+  &=
+  \sum_{\bar s}
+  \quotient\mu(\bar s)\Vbar^i_{\bar\pi}(\bar s)
+  =
+  \Vbar^i_{\bar\pi}(\quotient\mu).
+\end{align*}
+
+For part \ref{item:visitation-equivalence}, the state-to-state kernels induced by
+$\pi$ and $\bar\pi$ satisfy
+\begin{align}
+  \sum_{s'\in\bar s'}P^\pi(s'\mid s)
+  =
+  \quotient P^{\bar\pi}(\bar s'\mid\rho(s)).
+  \label{eq:projected-policy-kernel}
+\end{align}
+Indeed, this follows by summing
+$P^\pi(s'\mid s)=\sum_a\pi(a\mid s)P(s'\mid s,a)$ over $\bar s'$ and applying
+\eqref{eq:quotient-transition}. Let
+$p_t^\pi(s'\mid s_0)$ and
+$\bar p_t^{\bar\pi}(\bar s'\mid\bar s_0)$ denote the corresponding $t$-step
+transition probabilities. We claim that
+\begin{align}
+  \sum_{s'\in\bar s'}p_t^\pi(s'\mid s_0)
+  =
+  \bar p_t^{\bar\pi}(\bar s'\mid\rho(s_0))
+  \qquad
+  \text{for every $t\ge0$.}
+  \label{eq:projected-occupancy}
+\end{align}
+At $t=0$, both sides are the indicator of
+$\rho(s_0)=\bar s'$. If the identity holds at time $t$, then grouping the
+one-step recursion for $p_{t+1}^\pi$ by the orbit $\bar u$ of the intermediate
+state and using \eqref{eq:projected-policy-kernel} gives
+\begin{align*}
+  \sum_{s'\in\bar s'}p_{t+1}^\pi(s'\mid s_0)
+  &=
+  \sum_{\bar u\in\quotient\St}
+  \left(\sum_{u\in\bar u}p_t^\pi(u\mid s_0)\right)
+  \quotient P^{\bar\pi}(\bar s'\mid\bar u)\\
+  &=
+  \sum_{\bar u\in\quotient\St}
+  \bar p_t^{\bar\pi}(\bar u\mid\rho(s_0))
+  \quotient P^{\bar\pi}(\bar s'\mid\bar u)\\
+  &=
+  \bar p_{t+1}^{\bar\pi}(\bar s'\mid\rho(s_0)).
+\end{align*}
+Thus \eqref{eq:projected-occupancy} follows by induction. Finally,
+\begin{align*}
+  \dbar^{\bar\pi}_{\quotient\mu}(\bar s')
+  &=
+  \sum_{t=0}^\infty\gamma^t
+  \sum_{\bar s_0}
+  \quotient\mu(\bar s_0)
+  \bar p_t^{\bar\pi}(\bar s'\mid\bar s_0)\\
+  &=
+  \sum_{t=0}^\infty\gamma^t
+  \sum_{s_0\in\St}
+  \mu(s_0)
+  \sum_{s'\in\bar s'}p_t^\pi(s'\mid s_0)\\
+  &=
+  \sum_{s'\in\bar s'}d^\pi_\mu(s'),
+\end{align*}
+where the second equality uses
+$\quotient\mu(\bar s_0)=\sum_{s_0\in\bar s_0}\mu(s_0)$ and
+\eqref{eq:projected-occupancy}. This is
+\eqref{eq:visitation-equivalence}.
+\end{proof}
+
+\section{The Quotient Is a Markov Potential Game}
+\label{app:proof-quotient-is-mpg}
+
+\begin{lemma}[Inherited MPG structure and regularity]
+\label{lemma:quotient-is-mpg}
+Let $M$ be a $G$-state-symmetric MPG satisfying
+\Cref{assumption:standing,assumption:symmetry}. Then its quotient has the
+following properties:
+\begin{enumerate}[label=(\alph*),leftmargin=2.2em,itemsep=2pt]
+  \item \label{item:quotient-potential}
+  It is an MPG with potential $\quotient\phi$ and total-potential bounds
+  $[\Phi_{\min},\Phi_{\max}]$.
+  \item \label{item:quotient-visitation}
+  Every quotient policy has positive discounted visitation on every quotient
+  state.
+  \item \label{item:quotient-mismatch}
+  Its mismatch coefficient
+  \begin{align*}
+    \Mbar
+    :=
+    \max_{\bar\pi,\bar\pi'\in\Pi(\quotient M)}
+    \norm{
+      \dbar^{\bar\pi}_{\quotient\mu}
+      /
+      \dbar^{\bar\pi'}_{\quotient\mu}
+    }_\infty
+  \end{align*}
+  satisfies $\Mbar\le\kappa$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+Let $\Potbar_{\bar\pi}$ denote the discounted total potential generated by
+$\quotient\phi$ in $\quotient M$. The Bellman argument in
+\Cref{lemma:policy-correspondence}\ref{item:value-equivalence}, with $\phi$ and
+$\quotient\phi$ in place of $r^i$ and $\quotient r^{\,i}$, gives
+\begin{align}
+  \Phi_{\bar\pi^\uparrow}(s)
+  =
+  \Potbar_{\bar\pi}(\rho(s)).
+  \label{eq:potential-lift-equivalence}
+\end{align}
+Fix an agent $i$, a quotient policy $\bar\pi$, and an alternative local policy
+$\bar\nu^i$. Set
+$\widetilde{\bar\pi}:=(\bar\nu^i,\bar\pi^{-i})$. Lifting acts coordinatewise, so
+$\widetilde{\bar\pi}^{\,\uparrow}$ and $\bar\pi^\uparrow$ differ only in agent
+$i$'s policy. At any representative $s\in\bar s$, value equivalence, the MPG
+identity of $M$, and \eqref{eq:potential-lift-equivalence} give
+\begin{align*}
+  \Vbar^i_{\widetilde{\bar\pi}}(\bar s)
+  -
+  \Vbar^i_{\bar\pi}(\bar s)
+  &=
+  V^i_{\widetilde{\bar\pi}^{\,\uparrow}}(s)
+  -
+  V^i_{\bar\pi^\uparrow}(s)\\
+  &=
+  \Phi_{\widetilde{\bar\pi}^{\,\uparrow}}(s)
+  -
+  \Phi_{\bar\pi^\uparrow}(s)\\
+  &=
+  \Potbar_{\widetilde{\bar\pi}}(\bar s)
+  -
+  \Potbar_{\bar\pi}(\bar s).
+\end{align*}
+Hence $\quotient\phi$ is a potential for $\quotient M$. Moreover,
+\begin{align*}
+  \Potbar_{\bar\pi}(\bar s)
+  =
+  \Phi_{\bar\pi^\uparrow}(s)
+  \in
+  [\Phi_{\min},\Phi_{\max}],
+\end{align*}
+which proves part \ref{item:quotient-potential}.
+
+By \eqref{eq:visitation-equivalence},
+\begin{align*}
+  \dbar^{\bar\pi}_{\quotient\mu}(\bar s)
+  =
+  \sum_{s\in\bar s}d^{\bar\pi^\uparrow}_\mu(s).
+\end{align*}
+Each summand is positive by \Cref{assumption:standing}, proving part
+\ref{item:quotient-visitation}.
+
+For quotient policies $\bar\pi,\bar\pi'$ and a quotient state $\bar s$,
+\begin{align*}
+  \frac{
+    \dbar^{\bar\pi}_{\quotient\mu}(\bar s)
+  }{
+    \dbar^{\bar\pi'}_{\quotient\mu}(\bar s)
+  }
+  &=
+  \frac{
+    \sum_{s\in\bar s}d^{\bar\pi^\uparrow}_\mu(s)
+  }{
+    \sum_{s\in\bar s}d^{\bar\pi'^\uparrow}_\mu(s)
+  }\\
+  &\le
+  \max_{s\in\bar s}
+  \frac{
+    d^{\bar\pi^\uparrow}_\mu(s)
+  }{
+    d^{\bar\pi'^\uparrow}_\mu(s)
+  }
+  \le\kappa.
+\end{align*}
+The first inequality is the mediant inequality for positive numbers; the second
+is the definition of $\kappa$. Maximizing over quotient states and policies proves
+$\Mbar\le\kappa$.
+\end{proof}
+
+\section{Nash-Gap Preservation}
+\label{app:proof-nash-gap-preservation}
+
+The key point is that, against invariant opponents, an agent has an invariant
+optimal best response even though the original Nash gap allows all local policies.
+
+\begin{lemma}[Invariant optimal best response]
+\label{lemma:br-mdp-symmetric}
+Let $M$ be a $G$-state-symmetric Markov game. Fix an agent $i$ and a
+$G$-invariant product policy $\pi$. The best-response MDP faced by agent $i$
+when the other agents play $\pi^{-i}$ is $G$-state-symmetric and has a
+$G$-invariant optimal stationary policy. Consequently,
+\begin{align}
+  \max_{\widetilde\pi^i}
+  V^i_{\widetilde\pi^i,\pi^{-i}}(\mu)
+  =
+  \max_{\widetilde\pi^i\ G\text{-invariant}}
+  V^i_{\widetilde\pi^i,\pi^{-i}}(\mu).
+  \label{eq:br-invariant-suffices}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+The best-response MDP has state space $\St$, action space $\Ac^i$, discount
+$\gamma$, initial distribution $\mu$, and data
+\begin{align*}
+  P^i_{\pi^{-i}}(s'\mid s,a^i)
+  &:=
+  \sum_{a^{-i}}
+  \pi^{-i}(a^{-i}\mid s)
+  P(s'\mid s,a^i,a^{-i}),\\
+  r^i_{\pi^{-i}}(s,a^i)
+  &:=
+  \sum_{a^{-i}}
+  \pi^{-i}(a^{-i}\mid s)
+  r^i(s,a^i,a^{-i}).
+\end{align*}
+Since $\pi^{-i}$ is invariant and the group leaves every action label fixed,
+\begin{align*}
+  P^i_{\pi^{-i}}(L_g[s']\mid L_g[s],a^i)
+  &=
+  \sum_{a^{-i}}
+  \pi^{-i}(a^{-i}\mid L_g[s])
+  P(L_g[s']\mid L_g[s],a^i,a^{-i})\\
+  &=
+  \sum_{a^{-i}}
+  \pi^{-i}(a^{-i}\mid s)
+  P(s'\mid s,a^i,a^{-i})\\
+  &=
+  P^i_{\pi^{-i}}(s'\mid s,a^i),
+\end{align*}
+where the second equality uses policy invariance and
+\eqref{eq:transition-equivariance}. The same calculation with rewards gives
+\begin{align*}
+  r^i_{\pi^{-i}}(L_g[s],a^i)
+  &=
+  r^i_{\pi^{-i}}(s,a^i).
+\end{align*}
+Thus the best-response MDP is $G$-state-symmetric.
+
+Let $\mathcal T$ be its Bellman optimality operator. If a function $V$ is
+$G$ invariant, then transition and reward symmetry imply
+\begin{align*}
+  (\mathcal T V)(L_g[s])
+  =
+  (\mathcal T V)(s).
+\end{align*}
+Starting value iteration from the zero function therefore produces only invariant
+functions. Because $\mathcal T$ is a $\gamma$-contraction, these iterates converge
+to the unique optimal value $V^*$, which is invariant. Its optimal action-value
+function consequently satisfies
+\begin{align*}
+  Q^*(L_g[s],a^i)
+  =
+  Q^*(s,a^i).
+\end{align*}
+Choose a greedy deterministic policy and break ties using one fixed total order on
+$\Ac^i$ at every state. The action-value vectors are identical within each orbit,
+so the selected greedy action is also identical within each orbit. This gives a
+$G$-invariant optimal stationary policy. Since this policy attains the unrestricted
+best-response value, \eqref{eq:br-invariant-suffices} follows.
+\end{proof}
+
+\begin{lemma}[Nash-gap preservation]
+\label{lemma:nash-gap-preservation}
+Let $M$ be a $G$-state-symmetric Markov game. Every quotient policy $\bar\pi$
+satisfies
+\begin{align*}
+  \Nash_M(\bar\pi^\uparrow)
+  =
+  \Nash_{\quotient M}(\bar\pi).
+\end{align*}
+Consequently, $\bar\pi$ is $\epsilon$ Nash in $\quotient M$ if and only if
+$\bar\pi^\uparrow$ is $\epsilon$ Nash in $M$.
+\end{lemma}
+
+\begin{proof}
+Write $\pi=\bar\pi^\uparrow$. Fix an agent $i$. Since $\pi^{-i}$ is invariant,
+\Cref{lemma:br-mdp-symmetric} allows the original best-response optimization to
+be restricted to invariant local deviations:
+\begin{align*}
+  \max_{\widetilde\pi^i}
+  V^i_{\widetilde\pi^i,\pi^{-i}}(\mu)
+  =
+  \max_{\widetilde\pi^i\ G\text{-invariant}}
+  V^i_{\widetilde\pi^i,\pi^{-i}}(\mu).
+\end{align*}
+By \Cref{lemma:policy-correspondence}\ref{item:lift-invariant}, projection is a
+bijection between invariant local policies on $M$ and local policies on
+$\quotient M$. Concretely, for an invariant deviation $\widetilde\pi^i$, define
+\begin{align*}
+  \bar\nu^i(a^i\mid\bar s)
+  :=
+  \widetilde\pi^i(a^i\mid\iota(\bar s)).
+\end{align*}
+Then
+$(\widetilde\pi^i,\pi^{-i})
+=
+(\bar\nu^i,\bar\pi^{-i})^\uparrow$.
+Value equivalence gives
+\begin{align*}
+  V^i_{\widetilde\pi^i,\pi^{-i}}(\mu)
+  &=
+  \Vbar^i_{\bar\nu^i,\bar\pi^{-i}}(\quotient\mu),\\
+  V^i_\pi(\mu)
+  &=
+  \Vbar^i_{\bar\pi}(\quotient\mu).
+\end{align*}
+Therefore,
+\begin{align*}
+  \max_{\widetilde\pi^i}
+  V^i_{\widetilde\pi^i,\pi^{-i}}(\mu)
+  -
+  V^i_\pi(\mu)
+  =
+  \max_{\bar\nu^i}
+  \Vbar^i_{\bar\nu^i,\bar\pi^{-i}}(\quotient\mu)
+  -
+  \Vbar^i_{\bar\pi}(\quotient\mu).
+\end{align*}
+The left and right sides are respectively agent $i$'s contributions to the Nash
+gaps in $M$ and $\quotient M$. Maximizing over $i$ proves
+the identity in \eqref{eq:nash-gap-preservation}.
+\end{proof}
+
+\section{Black-Box Rate Transfer Through the Quotient}
+\label{app:proof-quotient-rate-transfer}
+
+\begin{proof}[Proof of \Cref{thm:exact-quotient},
+part~\ref{item:quotient-rate-transfer}]
+By hypothesis, the uniform MPG certificate applies to
+$\quotient M$. Its state count is $\abs{\quotient\St}$, while the certificate
+parameters collected in $\vartheta$ are valid for both games. Applying
+\eqref{eq:uniform-mpg-rate-profile} to $\quotient M$ gives
+\begin{align*}
+  \min_{0\le t<T}\Nash_{\quotient M}(\bar\pi_t)
+  \le\epsilon
+\end{align*}
+whenever
+$T\ge
+T_{\mathrm{MG}}
+(\epsilon,\abs{\quotient\St};\vartheta)$.
+For every iterate, \eqref{eq:nash-gap-preservation} gives
+\begin{align*}
+  \Nash_M(\pi_t)
+  =
+  \Nash_M(\bar\pi_t^\uparrow)
+  =
+  \Nash_{\quotient M}(\bar\pi_t).
+\end{align*}
+This proves \eqref{eq:quotient-black-box-rate}.
+
+For the displayed monomial certificate, applying the same sufficient-bound formula
+to $M$ and $\quotient M$ gives
+\begin{align*}
+  B_{\mathrm{full}}(\epsilon)
+  &=
+  C(\vartheta)\abs\St^\alpha\epsilon^{-p},\\
+  B_{\mathrm{quot}}(\epsilon)
+  &=
+  C(\vartheta)\abs{\quotient\St}^\alpha\epsilon^{-p}.
+\end{align*}
+Taking their ratio proves \eqref{eq:quotient-state-rate-factor}. The argument
+uses only a convergence theorem for MPGs and does not invoke a single-agent
+convergence result.
+
+If a particular external rate theorem also depends monotonically on visitation
+regularity, that theorem may additionally use
+\Cref{lemma:quotient-is-mpg}\ref{item:quotient-visitation} and
+\ref{item:quotient-mismatch}.
+In particular, the original mismatch coefficient $\kappa$ is a common valid upper
+bound because the quotient coefficient is at most $\kappa$. These secondary
+refinements are not needed for the state-count transfer stated in the main
+theorem.
+\end{proof}
+
+\section{Permutation Invariance and Shared Pointed-State Policies}
+\label{app:proof-perm-sharing}
+
+\begin{lemma}[Pointed-state orbits and shared policies]
+\label{lemma:perm-sharing}
+For pointed states $(i,s)$ and $(j,s')$, the equality $z_i(s)=z_j(s')$ holds
+if and only if
+\begin{align*}
+  s^i=s'^j,
+  \qquad
+  \{\!\{s^k:k\ne i\}\!\}
+  =
+  \{\!\{s'^k:k\ne j\}\!\}.
+\end{align*}
+Moreover, a product policy is permutation invariant if and only if it is
+pointed-orbit shared.
+\end{lemma}
+
+\begin{proof}
+If $z_i(s)=z_j(s')$, then, by definition of the orbit, some
+$\sigma\in\Sym_N$ satisfies $j=\sigma(i)$ and
+$s'=\sigma\mathbin{\cdot}s$. Then
+\begin{align*}
+  s'^j
+  =
+  (\sigma\mathbin{\cdot}s)^{\sigma(i)}
+  =
+  s^i,
+\end{align*}
+and the coordinates of $s'$ other than $j$ are a reordering of the coordinates
+of $s$ other than $i$. Hence the two concrete descriptors agree.
+
+Conversely, suppose the two concrete descriptors agree. Set $\sigma(i)=j$.
+Equality of their multisets gives a bijection
+\begin{align*}
+  \sigma:
+  \N\setminus\{i\}
+  \longrightarrow
+  \N\setminus\{j\}
+\end{align*}
+such that $s'^{\sigma(k)}=s^k$ for every $k\ne i$. Together with
+$s'^j=s^i$, this defines a permutation of $\N$ satisfying
+\begin{align*}
+  (\sigma\mathbin{\cdot}s)^{\sigma(k)}
+  =
+  s^k
+  =
+  s'^{\sigma(k)}
+  \qquad
+  \text{for every $k\in\N$.}
+\end{align*}
+Thus $\sigma\mathbin{\cdot}s=s'$ and
+$\sigma\mathbin{\cdot}(i,s)=(j,s')$. This proves the orbit characterization.
+
+Now let $\pi$ be permutation invariant. If
+$z_i(s)=z_j(s')$, choose $\sigma$ as above. Then
+\eqref{eq:perm-invariant-policy} gives
+\begin{align*}
+  \pi^j(b\mid s')
+  =
+  \pi^{\sigma(i)}(b\mid\sigma\mathbin{\cdot}s)
+  =
+  \pi^i(b\mid s).
+\end{align*}
+Consequently,
+\begin{align*}
+  \psi(b\mid z)
+  :=
+  \pi^i(b\mid s)
+  \qquad
+  \text{for any $(i,s)$ such that $z_i(s)=z$}
+\end{align*}
+is well defined and gives \eqref{eq:shared-rule}.
+
+Conversely, suppose \eqref{eq:shared-rule} holds. For every $\sigma$,
+\begin{align*}
+  z_{\sigma(i)}(\sigma\mathbin{\cdot}s)
+  =
+  z_i(s),
+\end{align*}
+because the two pointed states are in the same orbit. Therefore
+\begin{align*}
+  \pi^{\sigma(i)}(b\mid\sigma\mathbin{\cdot}s)
+  =
+  \psi\!\left(
+    b\mid z_{\sigma(i)}(\sigma\mathbin{\cdot}s)
+  \right)
+  =
+  \psi(b\mid z_i(s))
+  =
+  \pi^i(b\mid s),
+\end{align*}
+so $\pi$ is permutation invariant.
+
+Every $z\in\mathcal Z$ is the orbit of some pointed state. It follows that
+the shared rule inducing an invariant policy is unique, so the correspondence is
+a bijection. Finally, per-agent invariance implies the joint identity
+\begin{align}
+  \pi(\sigma\mathbin{\cdot}a\mid\sigma\mathbin{\cdot}s)
+  =
+  \pi(a\mid s),
+  \label{eq:perm-joint-policy-invariance}
+\end{align}
+because
+\begin{align*}
+  \pi(\sigma\mathbin{\cdot}a\mid\sigma\mathbin{\cdot}s)
+  =
+  \prod_{i\in\N}
+  \pi^{\sigma(i)}(a^i\mid\sigma\mathbin{\cdot}s)
+  =
+  \prod_{i\in\N}\pi^i(a^i\mid s).
+\end{align*}
+\end{proof}
+
+\section{Value, Advantage, Visitation, and Potential Equivariance}
+\label{app:proof-perm-equivariance}
+
+\begin{lemma}[Strategic equivariance under agent relabeling]
+\label{lemma:perm-equivariance}
+Under \Cref{assumption:permutation-structure}, every
+$\pi\in\Pi_{\Sym_N}(M)$ satisfies, for every
+$\sigma\in\Sym_N$, $i\in\N$, $s\in\St$, $a\in\mathcal B^N$, and
+$b\in\mathcal B$,
+\begin{align}
+  V^{\sigma(i)}_\pi(\sigma\mathbin{\cdot}s)
+  &=
+  V^i_\pi(s),&
+  Q^{\sigma(i)}_\pi(\sigma\mathbin{\cdot}s,
+    \sigma\mathbin{\cdot}a)
+  &=
+  Q^i_\pi(s,a),
+  \label{eq:perm-value-equivariance}\\
+  A^{\sigma(i)}_\pi(\sigma\mathbin{\cdot}s,b)
+  &=
+  A^i_\pi(s,b),&
+  d^\pi_\mu(\sigma\mathbin{\cdot}s)
+  &=
+  d^\pi_\mu(s),
+  \notag\\
+  \Phi_\pi(\sigma\mathbin{\cdot}s)
+  &=
+  \Phi_\pi(s).
+  \notag
+\end{align}
+In particular, there is a well-defined function $\widehat A_\pi$ such that
+\begin{align}
+  A^i_\pi(s,b)
+  =
+  \widehat A_\pi(z_i(s),b).
+  \label{eq:descriptor-advantage}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+First consider the state kernel induced by $\pi$:
+\begin{align*}
+  P^\pi(s'\mid s)
+  :=
+  \sum_{a\in\mathcal B^N}\pi(a\mid s)P(s'\mid s,a).
+\end{align*}
+Reindexing the action sum by $a'\!=\sigma\mathbin{\cdot}a$ and using
+\eqref{eq:perm-joint-policy-invariance} and \eqref{eq:perm-transition} gives
+\begin{align}
+  P^\pi(\sigma\mathbin{\cdot}s'\mid\sigma\mathbin{\cdot}s)
+  &=
+  \sum_{a\in\mathcal B^N}
+  \pi(\sigma\mathbin{\cdot}a\mid\sigma\mathbin{\cdot}s)
+  P(\sigma\mathbin{\cdot}s'\mid
+    \sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)
+  \nonumber\\
+  &=
+  P^\pi(s'\mid s).
+  \label{eq:perm-policy-kernel}
+\end{align}
+
+The map
+\begin{align*}
+  (s_t,a_t)_{t\ge0}
+  \longmapsto
+  (\sigma\mathbin{\cdot}s_t,\sigma\mathbin{\cdot}a_t)_{t\ge0}
+\end{align*}
+is therefore a probability-preserving bijection between trajectories under
+$\pi$ started from $s$ and trajectories under $\pi$ started from
+$\sigma\mathbin{\cdot}s$. By \eqref{eq:perm-reward}, the reward of agent
+$\sigma(i)$ along the transformed trajectory equals the reward of agent $i$
+along the original trajectory at every time. It follows that
+\begin{align*}
+  V^{\sigma(i)}_\pi(\sigma\mathbin{\cdot}s)
+  =
+  V^i_\pi(s).
+\end{align*}
+Applying the same reindexing to the one-step action-value equations gives
+\begin{align*}
+  Q^{\sigma(i)}_\pi(
+    \sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)
+  =
+  Q^i_\pi(s,a).
+\end{align*}
+The same trajectory argument with the invariant signal $\phi$ in place of
+$r^i$ proves
+\begin{align*}
+  \Phi_\pi(\sigma\mathbin{\cdot}s)
+  =
+  \Phi_\pi(s).
+\end{align*}
+
+For completeness, let $p_t^\pi(s'\mid s)$ be the $t$-step transition
+probability under $P^\pi$. \Cref{eq:perm-policy-kernel} implies by
+induction that
+\begin{align*}
+  p_t^\pi(
+    \sigma\mathbin{\cdot}s'\mid\sigma\mathbin{\cdot}s)
+  =
+  p_t^\pi(s'\mid s)
+  \qquad
+  \text{for every $t\ge0$.}
+\end{align*}
+Using \eqref{eq:perm-mu} and reindexing the initial state as
+$s_0=\sigma\mathbin{\cdot}u$,
+\begin{align*}
+  d^\pi_\mu(\sigma\mathbin{\cdot}s')
+  &=
+  \sum_{t=0}^{\infty}\gamma^t
+  \sum_{s_0\in\St}
+  \mu(s_0)
+  p_t^\pi(\sigma\mathbin{\cdot}s'\mid s_0)\\
+  &=
+  \sum_{t=0}^{\infty}\gamma^t
+  \sum_{u\in\St}
+  \mu(\sigma\mathbin{\cdot}u)
+  p_t^\pi(
+    \sigma\mathbin{\cdot}s'\mid\sigma\mathbin{\cdot}u)\\
+  &=
+  d^\pi_\mu(s').
+\end{align*}
+
+Subtracting the value identity from the action-value identity gives joint
+advantage equivariance:
+\begin{align}
+  A^{\sigma(i)}_\pi(
+    \sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)
+  =
+  A^i_\pi(s,a).
+  \label{eq:perm-joint-advantage}
+\end{align}
+Fix $b\in\mathcal B$ and reindex the other agents' actions by
+$a'\!=\sigma\mathbin{\cdot}a$ with $a^i=b$. Since
+$(\sigma\mathbin{\cdot}a)^{\sigma(i)}=b$, product-policy invariance gives
+\begin{align*}
+  &\pi^{-\sigma(i)}\!\left(
+    (\sigma\mathbin{\cdot}a)^{-\sigma(i)}
+    \,\middle|\,
+    \sigma\mathbin{\cdot}s
+  \right)
+  =
+  \pi^{-i}(a^{-i}\mid s).
+\end{align*}
+Applying this identity and \eqref{eq:perm-joint-advantage} in the definition
+\eqref{eq:local-advantage} yields
+\begin{align*}
+  A^{\sigma(i)}_\pi(\sigma\mathbin{\cdot}s,b)
+  =
+  A^i_\pi(s,b).
+\end{align*}
+
+Finally, if $z_i(s)=z_j(s')$, then
+\Cref{lemma:perm-sharing} supplies a $\sigma$ with
+$j=\sigma(i)$ and $s'=\sigma\mathbin{\cdot}s$. The local-advantage identity
+therefore gives
+\begin{align*}
+  A^j_\pi(s',b)
+  =
+  A^i_\pi(s,b).
+\end{align*}
+Thus defining $\widehat A_\pi(z,b)$ using any pointed state with descriptor
+$z$ is independent of the choice and proves \eqref{eq:descriptor-advantage}.
+\end{proof}
+
+\section{Pointed-Orbit Best Responses and the Unrestricted Nash Gap}
+\label{app:proof-perm-best-response}
+
+\begin{lemma}[Pointed-orbit optimal best response]
+\label{lemma:perm-best-response}
+Under \Cref{assumption:permutation-structure}, let
+$\pi\in\Pi_{\Sym_N}(M)$. For every agent $i$, the best-response identity
+\eqref{eq:perm-best-response-reduction} holds. Moreover, all agents have the same
+best-response gain, and hence \eqref{eq:perm-nash-reduction} holds.
+\end{lemma}
+
+\begin{proof}
+Fix an agent $i$ and let
+\begin{align*}
+  H_i
+  :=
+  \{\tau\in\Sym_N:\tau(i)=i\}
+\end{align*}
+be its stabilizer subgroup. Against $\pi^{-i}$, agent $i$ faces the finite
+discounted MDP with state space $\St$, action space $\mathcal B$, and
+\begin{align*}
+  P^i_{\pi^{-i}}(s'\mid s,b)
+  &:=
+  \sum_{a^{-i}}
+  \pi^{-i}(a^{-i}\mid s)
+  P(s'\mid s,b,a^{-i}),\\
+  r^i_{\pi^{-i}}(s,b)
+  &:=
+  \sum_{a^{-i}}
+  \pi^{-i}(a^{-i}\mid s)
+  r^i(s,b,a^{-i}).
+\end{align*}
+
+For $\tau\in H_i$, reindex the sum over $a^{-i}$ by the permutation of the
+other agents' action coordinates induced by $\tau$. Because $\tau(i)=i$,
+the focal action $b$ is unchanged. Permutation invariance of $\pi$ gives
+\begin{align*}
+  \pi^{-i}\!\left(
+    (\tau\mathbin{\cdot}a)^{-i}
+    \,\middle|\,
+    \tau\mathbin{\cdot}s
+  \right)
+  =
+  \pi^{-i}(a^{-i}\mid s)
+  \qquad
+  \text{when $a^i=b$.}
+\end{align*}
+Using \eqref{eq:perm-transition} and
+\eqref{eq:perm-reward}, with $\tau(i)=i$, therefore gives
+\begin{align}
+  P^i_{\pi^{-i}}(
+    \tau\mathbin{\cdot}s'\mid\tau\mathbin{\cdot}s,b)
+  &=
+  P^i_{\pi^{-i}}(s'\mid s,b),
+  \label{eq:perm-br-transition}\\
+  r^i_{\pi^{-i}}(\tau\mathbin{\cdot}s,b)
+  &=
+  r^i_{\pi^{-i}}(s,b).
+  \label{eq:perm-br-reward}
+\end{align}
+Thus the best-response MDP is $H_i$-state-symmetric with unchanged action
+labels.
+
+Its Bellman optimality operator maps $H_i$-invariant value functions to
+$H_i$-invariant value functions by
+\eqref{eq:perm-br-transition}--\eqref{eq:perm-br-reward}. Starting value
+iteration from zero and using contraction therefore shows that the optimal value
+and optimal action-value functions are $H_i$ invariant. Choosing a greedy action
+with one fixed tie-breaking order on $\mathcal B$ gives an $H_i$-invariant
+optimal stationary policy.
+
+The $H_i$-orbits in $\St$ are exactly the fibers of $z_i$. Indeed, elements
+of $H_i$ fix $s^i$ and reorder the other coordinates; conversely, equal
+descriptors allow the remaining equal-valued coordinates to be matched by a
+permutation fixing $i$. Hence an $H_i$-invariant local policy is exactly a policy
+of the form $\chi\circ z_i$. The invariant optimal policy constructed above
+therefore proves \eqref{eq:perm-best-response-reduction}.
+
+It remains to compare agents. Fix $i,j$ and choose
+$\sigma\in\Sym_N$ with $\sigma(i)=j$. For any local policy $\nu^i$, define its
+relabeling for agent $j$ by
+\begin{align}
+  (\sigma_*\nu^i)(b\mid s')
+  :=
+  \nu^i(b\mid\sigma^{-1}\mathbin{\cdot}s').
+  \label{eq:perm-deviation-pushforward}
+\end{align}
+This is a bijection between the local policy spaces of agents $i$ and $j$.
+Let
+\begin{align*}
+  q
+  &:=
+  (\nu^i,\pi^{-i}),&
+  q'
+  &:=
+  (\sigma_*\nu^i,\pi^{-j}).
+\end{align*}
+For the deviating coordinate,
+\begin{align*}
+  q'^{\sigma(i)}(b\mid\sigma\mathbin{\cdot}s)
+  =
+  q^i(b\mid s)
+\end{align*}
+by \eqref{eq:perm-deviation-pushforward}; for every $k\ne i$, the same identity
+holds between $q'^{\sigma(k)}$ and $q^k$ by permutation invariance of $\pi$.
+Thus the trajectory relabeling used in
+\Cref{lemma:perm-equivariance}, now between policies $q$ and $q'$, gives
+\begin{align*}
+  V^j_{q'}(\sigma\mathbin{\cdot}s)
+  =
+  V^i_q(s).
+\end{align*}
+Averaging over the permutation-invariant initial distribution and reindexing
+states yields
+\begin{align*}
+  V^j_{\sigma_*\nu^i,\pi^{-j}}(\mu)
+  =
+  V^i_{\nu^i,\pi^{-i}}(\mu).
+\end{align*}
+Taking maxima and using the bijectivity of $\nu^i\mapsto\sigma_*\nu^i$ shows that
+the optimal response values are equal for agents $i$ and $j$. Similarly,
+\eqref{eq:perm-value-equivariance} and \eqref{eq:perm-mu} imply
+\begin{align*}
+  V^j_\pi(\mu)
+  =
+  V^i_\pi(\mu).
+\end{align*}
+The best-response gains are therefore equal. Combining this fact with
+\eqref{eq:perm-best-response-reduction} and the definition of the Nash gap proves
+\eqref{eq:perm-nash-reduction}.
+\end{proof}
+
+\section{Black-Box Rate Transfer for Shared Rules}
+\label{app:proof-perm-rate-transfer}
+
+\begin{proof}[Proof of \Cref{thm:exact-permutation-sharing},
+part~\ref{item:permutation-rate-transfer}]
+Every solver iterate is pointed-orbit shared by hypothesis.
+\Cref{eq:perm-nash-reduction} therefore gives, for every
+fixed agent $i$ and every iteration $t$,
+\begin{align*}
+  \Nash_M(\pi_t)
+  =
+  \max_{\chi:\mathcal Z\to\Delta(\mathcal B)}
+  \left[
+    V^i_{\chi\circ z_i,\pi_t^{-i}}(\mu)
+    -
+    V^i_{\pi_t}(\mu)
+  \right].
+\end{align*}
+Taking the minimum over $0\le t<T$ and applying
+\eqref{eq:uniform-shared-rate-profile} proves
+\eqref{eq:permutation-black-box-rate}.
+
+For the optional bound comparison, the unrestricted table has
+$D_{\mathrm{full}}=N\abs{\mathcal C}^{N}$ local policy blocks, while the
+shared table has $D_{\mathrm{perm}}=\abs{\mathcal Z}$. Orbit compatibility is
+precisely the additional hypothesis that the same certificate form controls the
+ordinary Nash gap before tying and the pointed-orbit gap after tying, using
+common auxiliary bounds. Both representations have state count
+$S=\abs{\mathcal C}^{N}$. Therefore
+\begin{align*}
+  \frac{B_{\mathrm{perm}}(\epsilon)}
+       {B_{\mathrm{full}}(\epsilon)}
+  =
+  \frac{
+    C_{\mathrm{perm}}(\vartheta)
+    S^\alpha D_{\mathrm{perm}}^\delta\epsilon^{-p}
+  }{
+    C_{\mathrm{full}}(\vartheta)
+    S^\alpha D_{\mathrm{full}}^\delta\epsilon^{-p}
+  }
+  \le
+  \left(
+    \frac{\abs{\mathcal Z}}
+         {N\abs{\mathcal C}^{N}}
+  \right)^\delta.
+\end{align*}
+This proves \eqref{eq:permutation-block-rate-factor}. The condition on
+$\vartheta$ is essential: for Euclidean shared-coordinate gradient methods, for
+example, smoothness may depend on the largest number of pointed states tied to
+one descriptor. The block count alone does not control that multiplicity.
+\end{proof}
+
+\section{Proof of the Combined Reduction}
+\label{app:proof-combined-reductions}
+
+\begin{proof}[Proof of \Cref{thm:combined-reductions}]
+\noindent\textbf{The descended permutation action.}
+Suppose $s,\widetilde s\in\bar s$, so
+$\widetilde s=L_g[s]$ for some $g\in G$. By
+\eqref{eq:commuting-state-actions},
+\begin{align*}
+  \sigma\mathbin{\cdot}\widetilde s
+  =
+  \sigma\mathbin{\cdot}L_g[s]
+  =
+  L_g[\sigma\mathbin{\cdot}s].
+\end{align*}
+Thus $\sigma\mathbin{\cdot}\widetilde s$ and
+$\sigma\mathbin{\cdot}s$ belong to the same $G$ orbit, so
+$\sigma\mathbin{\cdot}\bar s:=\rho(\sigma\mathbin{\cdot}s)$ is independent
+of the representative. It is a group action because the original
+$\Sym_N$ action is one.
+
+For quotient states $\bar s,\bar s'$ with representatives $s,s'$ and any
+joint action $a$, reindex the target orbit by
+$u=\sigma\mathbin{\cdot}v$ and use
+\eqref{eq:perm-transition}:
+\begin{align*}
+  \quotient P(
+    \sigma\mathbin{\cdot}\bar s'
+    \mid
+    \sigma\mathbin{\cdot}\bar s,
+    \sigma\mathbin{\cdot}a
+  )
+  &=
+  \sum_{u\in\sigma\cdot\bar s'}
+  P(u\mid\sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)\\
+  &=
+  \sum_{v\in\bar s'}
+  P(\sigma\mathbin{\cdot}v
+    \mid\sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)\\
+  &=
+  \sum_{v\in\bar s'}P(v\mid s,a)
+  =
+  \quotient P(\bar s'\mid\bar s,a).
+\end{align*}
+The reward and potential identities follow directly:
+\begin{align*}
+  \quotient r^{\,\sigma(i)}
+  (\sigma\mathbin{\cdot}\bar s,\sigma\mathbin{\cdot}a)
+  &=
+  r^{\sigma(i)}(\sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)
+  =
+  r^i(s,a)
+  =
+  \quotient r^{\,i}(\bar s,a),\\
+  \quotient\phi
+  (\sigma\mathbin{\cdot}\bar s,\sigma\mathbin{\cdot}a)
+  &=
+  \phi(\sigma\mathbin{\cdot}s,\sigma\mathbin{\cdot}a)
+  =
+  \phi(s,a)
+  =
+  \quotient\phi(\bar s,a).
+\end{align*}
+Finally, reindexing the orbit sum and using \eqref{eq:perm-mu} gives
+\begin{align*}
+  \quotient\mu(\sigma\mathbin{\cdot}\bar s)
+  =
+  \sum_{u\in\sigma\cdot\bar s}\mu(u)
+  =
+  \sum_{v\in\bar s}\mu(\sigma\mathbin{\cdot}v)
+  =
+  \quotient\mu(\bar s).
+\end{align*}
+Hence $\quotient M$ is permutation symmetric.
+
+\medskip\noindent\textbf{The two orbit orders agree.}
+Commutativity makes the displayed formula in
+\eqref{eq:combined-descriptor} a left action of
+$G\times\Sym_N$. Define
+\begin{align*}
+  F:
+  \mathcal W
+  &\longrightarrow
+  \big(\N\times(\St/G)\big)/\Sym_N,\\
+  F\!\left(\orbit{(i,s)}_{G\times\Sym_N}\right)
+  &:=
+  \orbit{(i,\rho(s))}_{\Sym_N}.
+\end{align*}
+The representative calculation above shows that $F$ is well defined. It is
+surjective because every pointed quotient state has a representative in
+$\N\times\St$. If
+$F(\orbit{(i,s)})=F(\orbit{(j,s')})$, there is a $\sigma\in\Sym_N$ with
+$j=\sigma(i)$ and
+$\rho(s')=\rho(\sigma\mathbin{\cdot}s)$. Therefore
+$s'=L_g[\sigma\mathbin{\cdot}s]$ for some $g\in G$, so the two pointed states
+are in the same $G\times\Sym_N$ orbit. Thus $F$ is injective.
+
+Similarly, commutativity induces a well-defined $G$ action on
+$\mathcal Z=(\N\times\St)/\Sym_N$ by
+\begin{align*}
+  g\mathbin{\cdot}\orbit{(i,s)}_{\Sym_N}
+  :=
+  \orbit{(i,L_g[s])}_{\Sym_N}.
+\end{align*}
+Quotienting this orbit space by $G$ identifies exactly the same pairs of
+pointed states as the product action. This proves both isomorphisms in
+\eqref{eq:combined-orbit-isomorphism}.
+
+\medskip\noindent\textbf{Jointly invariant policies.}
+If $\pi$ is jointly invariant and
+$(j,s')=(\sigma(i),L_g[\sigma\mathbin{\cdot}s])$, then
+\begin{align*}
+  \pi^j(b\mid s')
+  &=
+  \pi^{\sigma(i)}
+  (b\mid L_g[\sigma\mathbin{\cdot}s])\\
+  &=
+  \pi^{\sigma(i)}(b\mid\sigma\mathbin{\cdot}s)
+  =
+  \pi^i(b\mid s).
+\end{align*}
+Thus the local policy is constant on every combined pointed orbit and defines
+one rule on $\mathcal W$. Conversely, a rule on $\mathcal W$ is unchanged
+under the elements $(g,e)$ and $(e,\sigma)$, so its induced policy is both
+$G$ invariant and permutation invariant. This proves the policy
+correspondence.
+
+\medskip\noindent\textbf{Unrestricted best responses.}
+Fix an agent $i$ and let
+$H_i:=\{\tau\in\Sym_N:\tau(i)=i\}$. Against jointly invariant opponents,
+agent $i$'s best-response MDP is symmetric under $G\times H_i$. Indeed,
+reindexing the opponents' action sum by $\tau$ and applying first the
+permutation identities and then the state-only identities gives, for every
+$g\in G$, $\tau\in H_i$, and focal action $b$,
+\begin{align*}
+  P^i_{\pi^{-i}}\!\left(
+    L_g[\tau\mathbin{\cdot}s']
+    \mid
+    L_g[\tau\mathbin{\cdot}s],b
+  \right)
+  &=
+  P^i_{\pi^{-i}}(s'\mid s,b),\\
+  r^i_{\pi^{-i}}\!\left(
+    L_g[\tau\mathbin{\cdot}s],b
+  \right)
+  &=
+  r^i_{\pi^{-i}}(s,b).
+\end{align*}
+The focal action remains $b$ because $G$ fixes all action labels and
+$\tau(i)=i$. Value iteration from zero therefore yields a
+$G\times H_i$-invariant optimal value and action-value function. Greedy
+selection with one fixed tie-breaking order gives a
+$G\times H_i$-invariant optimal stationary response.
+
+The $G\times H_i$ orbits of states are exactly the fibers of $w_i$.
+One implication follows immediately from \eqref{eq:combined-descriptor}. For
+the converse, if $w_i(s)=w_i(s')$, then some $(g,\sigma)$ maps
+$(i,s)$ to $(i,s')$; hence $\sigma(i)=i$, so $\sigma\in H_i$ and
+$s'=L_g[\sigma\mathbin{\cdot}s]$. The invariant optimal response is therefore
+of the form $\chi\circ w_i$. Finally, the relabeling argument in
+\Cref{lemma:perm-best-response} still applies because a jointly invariant
+policy is permutation invariant. It shows that all agents have the same
+best-response gain. This proves \eqref{eq:combined-nash-reduction}.
+
+\medskip\noindent\textbf{Combined rate transfer.}
+By the first part, the shared solver may be run on $\quotient M$. Its
+pointed-state orbit space is identified with $\mathcal W$ by
+\eqref{eq:combined-orbit-isomorphism}. Each iterate $\bar\pi_t$ is
+permutation invariant. For a fixed agent $i$, its best-response MDP is
+$H_i$ symmetric, where
+$H_i=\{\tau\in\Sym_N:\tau(i)=i\}$, by the same calculation as in
+\Cref{eq:perm-br-transition,eq:perm-br-reward}. The $H_i$ orbits
+of $\quotient\St$ are exactly the fibers of
+$z_i^{\quotient M}$, and relabeling agents shows that all best-response
+gains are equal. Therefore
+\begin{align*}
+  \mathrm{OrbGap}_{\quotient M}^i(\bar\pi_t)
+  =
+  \Nash_{\quotient M}(\bar\pi_t).
+\end{align*}
+Lifting and
+\eqref{eq:nash-gap-preservation} then give, at every iteration,
+\begin{align*}
+  \Nash_M(\bar\pi_t^\uparrow)
+  =
+  \Nash_{\quotient M}(\bar\pi_t).
+\end{align*}
+Applying the assumed shared-solver certificate with
+$S=\abs{\quotient\St}$ and $D=\abs{\mathcal W}$ proves
+\eqref{eq:combined-black-box-rate}.
+
+Under the orbit-compatible monomial certificate, the full table has state count
+$\abs\St$ and $N\abs\St$ policy blocks, the permutation-only representation
+has state count $\abs\St$ and $\abs{\mathcal Z}$ blocks, the quotient-only
+representation has state count $\abs{\quotient\St}$ and
+$N\abs{\quotient\St}$ blocks, and the combined representation has state count
+$\abs{\quotient\St}$ and $\abs{\mathcal W}$ blocks. The assumed prefactor
+inequalities therefore give
+\begin{align*}
+  \frac{B_{\mathrm{both}}(\epsilon)}
+       {B_{\mathrm{full}}(\epsilon)}
+  &\le
+  \left(\frac{\abs{\quotient\St}}{\abs\St}\right)^\alpha
+  \left(\frac{\abs{\mathcal W}}{N\abs\St}\right)^\delta\\
+  &=
+  \left(\frac{\abs{\quotient\St}}{\abs\St}\right)^\alpha
+  \left(\frac{\abs{\mathcal W}}{\abs{\mathcal Z}}\right)^\delta
+  \left(\frac{\abs{\mathcal Z}}{N\abs\St}\right)^\delta,\\
+  \frac{B_{\mathrm{both}}(\epsilon)}
+       {B_{\mathrm{perm}}(\epsilon)}
+  &\le
+  \left(\frac{\abs{\quotient\St}}{\abs\St}\right)^\alpha
+  \left(\frac{\abs{\mathcal W}}{\abs{\mathcal Z}}\right)^\delta,\\
+  \frac{B_{\mathrm{both}}(\epsilon)}
+       {B_{\mathrm{quot}}(\epsilon)}
+  &\le
+  \left(
+    \frac{\abs{\mathcal W}}
+         {N\abs{\quotient\St}}
+  \right)^\delta.
+\end{align*}
+This proves
+\Cref{eq:combined-full-rate-factor,eq:combined-perm-rate-factor,eq:combined-quot-rate-factor}.
+The orbit isomorphisms identify
+$\mathcal W$ with $\mathcal Z/G$, so
+$\abs{\mathcal W}\le\abs{\mathcal Z}$. Also, $\mathcal W$ is an orbit space
+of $\N\times\quotient\St$, so
+$\abs{\mathcal W}\le N\abs{\quotient\St}$. If both stated $G$ actions are free,
+the orbit-stabilizer theorem gives
+\begin{align*}
+  \abs{\quotient\St}
+  =
+  \frac{\abs\St}{\abs G},
+  \qquad
+  \abs{\mathcal W}
+  =
+  \frac{\abs{\mathcal Z}}{\abs G}.
+\end{align*}
+These are separate assumptions: freeness on $\St$ need not imply freeness of
+the induced action on $\mathcal Z$, because $L_g[s]$ may agree with $s$ after
+an agent relabeling.  Therefore both are needed for the displayed
+multiplicative factors.  The two equalities above show that
+$\abs{\quotient\St}/\abs\St$ and
+$\abs{\mathcal W}/\abs{\mathcal Z}$ both equal $\abs G^{-1}$.
+Substitution proves
+\Cref{eq:combined-free-perm-factor,eq:combined-free-rate-factor}.
+\end{proof}
+
+\section{Proofs of the Sample-Complexity Results}
+\label{app:proof-sample-complexity}
+
+This section proves
+\Cref{thm:sample-complexity,thm:perm-sample-complexity,cor:combined-sample}.
+The first three lemmas are stated for a generic game so that all three results
+can share them. Throughout, $X$ denotes a finite MPG
+$\langle\N,\mathcal S_X,\Ac_X,P_X,\vec r_X,\mu_X,\gamma\rangle$ with potential
+$\phi_X$ whose total potential $\Phi^X_\pi$ takes values in
+$[\Phi_{\min},\Phi_{\max}]$ for every stationary product policy $\pi$ and
+state $x$. By \Cref{assumption:standing} this holds for $X=M$ with
+$\Phi^M_\pi=\Phi_\pi$, and by
+\Cref{lemma:quotient-is-mpg}\ref{item:quotient-potential} for $X=\quotient M$
+with $\Phi^{\quotient M}_{\bar\pi}=\Potbar_{\bar\pi}$.
+
+The \emph{potential MDP} of $X$ has state space $\mathcal S_X$, action space
+$\Ac_X$, reward $\phi_X$, kernel $P_X$, and discount $\gamma$; the value it
+assigns to a stationary product policy $\pi$ is the total potential
+$\Phi^X_\pi$. Let
+\begin{align*}
+  \Phi^X_\star(x)
+  :=
+  \max_{\pi}\Phi^X_\pi(x)
+\end{align*}
+denote its optimal value, the maximum ranging over all policies of that MDP,
+including history-dependent ones, and write
+$\Phi^X_\star(\mu_X):=\E_{x\sim\mu_X}[\Phi^X_\star(x)]$. A finite discounted
+MDP admits a stationary deterministic optimal policy, obtained by greedy
+selection with respect to its optimal action values; fix such a policy
+$\pi_\star$ for the potential MDP of $X$. For a transition kernel $Q$ on
+$\mathcal S_X\times\Ac_X$, let $\Phi^Q_\pi$ denote the value functions of the
+potential MDP with $Q$ in place of $P_X$, fix a stationary deterministic
+policy $\pi_Q$ optimal for it, and set
+\begin{align*}
+  \varepsilon_Q
+  :=
+  \max_{(x,a)\in\mathcal S_X\times\Ac_X}
+  \norm{Q(\cdot\mid x,a)-P_X(\cdot\mid x,a)}_1,
+  \qquad
+  \eta_Q
+  :=
+  \frac{\gamma\,\varepsilon_Q\,\Phisup}{1-\gamma}.
+\end{align*}
+Stationary deterministic policies of the potential MDP select one joint
+action per state and are therefore product policies of $X$.
+
+\begin{lemma}[Simulation lemma for the potential MDP]
+\label{lemma:potential-simulation}
+Every stationary product policy $\pi$ of $X$ satisfies
+\begin{align*}
+  \norm{\Phi^Q_\pi-\Phi^X_\pi}_\infty
+  \le
+  \eta_Q.
+\end{align*}
+\end{lemma}
+
+\begin{proof}
+For a stationary policy $\pi$ of the potential MDP, define the averaged
+reward and the averaged kernel operators
+\begin{align*}
+  \phi_{X,\pi}(x)
+  &:=
+  \sum_{a\in\Ac_X}\pi(a\mid x)\,\phi_X(x,a),\\
+  \big(P_{X,\pi}v\big)(x)
+  &:=
+  \sum_{a\in\Ac_X}\pi(a\mid x)
+  \sum_{x'\in\mathcal S_X}
+  P_X(x'\mid x,a)\,v(x'),
+\end{align*}
+with $Q_\pi$ defined from $Q$ in the same way. The value functions are the
+unique fixed points of the Bellman equations
+\begin{align*}
+  \Phi^X_\pi
+  &=
+  \phi_{X,\pi}+\gamma\,P_{X,\pi}\Phi^X_\pi,\\
+  \Phi^Q_\pi
+  &=
+  \phi_{X,\pi}+\gamma\,Q_\pi\Phi^Q_\pi.
+\end{align*}
+Subtracting,
+\begin{align*}
+  \Phi^Q_\pi-\Phi^X_\pi
+  =
+  \gamma\,Q_\pi
+  \big(\Phi^Q_\pi-\Phi^X_\pi\big)
+  +\gamma\big(Q_\pi-P_{X,\pi}\big)\Phi^X_\pi.
+\end{align*}
+The averaged operator satisfies
+$\norm{Q_\pi v}_\infty\le\norm v_\infty$, and H\"older's inequality applied
+statewise after averaging over actions gives
+\begin{align*}
+  \norm{\big(Q_\pi-P_{X,\pi}\big)v}_\infty
+  \le
+  \varepsilon_Q\norm v_\infty.
+\end{align*}
+Taking supremum norms and rearranging,
+\begin{align*}
+  \norm{\Phi^Q_\pi-\Phi^X_\pi}_\infty
+  \le
+  \frac{\gamma\,\varepsilon_Q}{1-\gamma}
+  \norm{\Phi^X_\pi}_\infty.
+\end{align*}
+By hypothesis, the total potential of every product policy takes values in
+$[\Phi_{\min},\Phi_{\max}]$, so
+$\norm{\Phi^X_\pi}_\infty\le\Phisup$.
+\end{proof}
+
+\begin{lemma}[Certainty-equivalent optimality transfer]
+\label{lemma:ce-optimality}
+For every $x\in\mathcal S_X$,
+\begin{align*}
+  \Phi^X_{\pi_Q}(x)
+  \ge
+  \Phi^X_\star(x)-2\eta_Q.
+\end{align*}
+\end{lemma}
+
+\begin{proof}
+The policies $\pi_Q$ and $\pi_\star$ are stationary deterministic joint
+policies, hence product policies, so \Cref{lemma:potential-simulation}
+applies to both. For every $x$,
+\begin{align*}
+  \Phi^X_{\pi_Q}(x)
+  &\ge
+  \Phi^Q_{\pi_Q}(x)-\eta_Q\\
+  &\ge
+  \Phi^Q_{\pi_\star}(x)-\eta_Q\\
+  &\ge
+  \Phi^X_{\pi_\star}(x)-2\eta_Q
+  =
+  \Phi^X_\star(x)-2\eta_Q.
+\end{align*}
+The middle inequality holds because $\pi_Q$ is optimal for the $Q$-model
+potential MDP, whose optimal value dominates the $Q$-model value of every
+policy, in particular of $\pi_\star$.
+\end{proof}
+
+\begin{lemma}[Nash gap of an approximate potential maximizer]
+\label{lemma:potential-nash-gap}
+Let a stationary product policy $\pi$ of $X$ satisfy
+$\Phi^X_\pi(x)\ge\Phi^X_\star(x)-\beta$ for every $x\in\mathcal S_X$ and some
+$\beta\ge0$. Then $\Nash_X(\pi)\le\beta$.
+\end{lemma}
+
+\begin{proof}
+Fix an agent $i$ and a stationary local deviation $\nu^i$. The deviated
+policy $(\nu^i,\pi^{-i})$ is a stationary product policy and hence also a
+policy of the potential MDP of $X$, so its total potential is dominated by the
+optimal value:
+\begin{align*}
+  \Phi^X_{\nu^i,\pi^{-i}}(x)
+  \le
+  \Phi^X_\star(x)
+  \qquad
+  \text{for every $x\in\mathcal S_X$.}
+\end{align*}
+Averaging over $x\sim\mu_X$ and applying the MPG identity of $X$ at $\mu_X$,
+\begin{align*}
+  V^i_{\nu^i,\pi^{-i}}(\mu_X)
+  -
+  V^i_\pi(\mu_X)
+  &=
+  \Phi^X_{\nu^i,\pi^{-i}}(\mu_X)
+  -
+  \Phi^X_\pi(\mu_X)\\
+  &\le
+  \Phi^X_\star(\mu_X)
+  -
+  \big(\Phi^X_\star(\mu_X)-\beta\big)
+  =
+  \beta.
+\end{align*}
+Maximizing over $\nu^i$ and over agents bounds the Nash gap by $\beta$.
+\end{proof}
+
+\begin{lemma}[Uniform $\ell_1$ concentration of the pooled estimator]
+\label{lemma:l1-concentration}
+Let $M$ be a $G$-state-symmetric MPG under
+\Cref{assumption:standing,assumption:symmetry}, and let $\hatP$ be the
+estimator \eqref{eq:pooled-estimator} with per-pair budget $n$. Fix
+$\varepsilon_P>0$ and $\delta\in(0,1)$. If
+\begin{align*}
+  n
+  \ge
+  \frac{2}{\varepsilon_P^2}
+  \left(
+    \abs{\quotient\St}\log2
+    +\log\frac{\abs{\quotient\St}\abs\Ac}{\delta}
+  \right),
+\end{align*}
+then, with probability at least $1-\delta$,
+\begin{align}
+  \max_{(\bar s,a)\in\quotient\St\times\Ac}
+  \norm{\hatP(\cdot\mid\bar s,a)-\quotient P(\cdot\mid\bar s,a)}_1
+  \le\varepsilon_P.
+  \label{eq:l1-event}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+Fix a pair $(\bar s,a)$ and abbreviate
+$p:=\quotient P(\cdot\mid\bar s,a)$ and $\hat p:=\hatP(\cdot\mid\bar s,a)$.
+For a draw $s'\sim P(\cdot\mid\iota(\bar s),a)$ and any subset
+$B\subseteq\quotient\St$,
+\begin{align}
+  \Pr\big[\rho(s')\in B\big]
+  =
+  \sum_{\bar s'\in B}\sum_{u\in\bar s'}P(u\mid\iota(\bar s),a)
+  =
+  p(B),
+  \label{eq:pooled-unbiased}
+\end{align}
+so $\hat p(B)$ is the empirical mean of $n$ independent Bernoulli variables
+with mean $p(B)$. For any two probability vectors on $\quotient\St$,
+\begin{align*}
+  \norm{\hat p-p}_1
+  =
+  2\max_{B\subseteq\quotient\St}
+  \big(\hat p(B)-p(B)\big),
+\end{align*}
+the maximum being attained at
+$B=\{\bar s':\hat p(\bar s')>p(\bar s')\}$. Hoeffding's inequality gives, for
+each fixed $B$,
+\begin{align*}
+  \Pr\left[\hat p(B)-p(B)\ge\frac{\varepsilon_P}{2}\right]
+  \le
+  \exp\left(-\frac{n\varepsilon_P^2}{2}\right).
+\end{align*}
+A union bound over the $2^{\abs{\quotient\St}}$ subsets, and then over the
+$\abs{\quotient\St}\abs\Ac$ quotient pairs, bounds the failure probability of
+\eqref{eq:l1-event} by
+\begin{align*}
+  \abs{\quotient\St}\abs\Ac\,
+  2^{\abs{\quotient\St}}
+  \exp\left(-\frac{n\varepsilon_P^2}{2}\right)
+  \le
+  \delta
+\end{align*}
+under the stated budget.
+\end{proof}
+
+\begin{lemma}[Uniform $\ell_1$ concentration of the transported estimator]
+\label{lemma:transport-concentration}
+Let $X$ additionally be permutation symmetric in the sense of the
+shared-solver rate convention, and let $\trP$ be the transported estimator
+\eqref{eq:transported-estimator} with per-orbit budget $n$. Fix
+$\varepsilon_P>0$ and $\delta\in(0,1)$. If
+\begin{align*}
+  n
+  \ge
+  \frac{2}{\varepsilon_P^2}
+  \left(
+    \abs{\mathcal S_X}\log2
+    +\log\frac{\abs{\mathcal Y_X}}{\delta}
+  \right),
+\end{align*}
+then, with probability at least $1-\delta$,
+\begin{align}
+  \max_{(x,a)\in\mathcal S_X\times\mathcal B_X^N}
+  \norm{\trP(\cdot\mid x,a)-P_X(\cdot\mid x,a)}_1
+  \le\varepsilon_P.
+  \label{eq:transport-event}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+Fix a pair $(x,a)$, write $\bar y:=y(x,a)$,
+$(x_0,a_0):=\jmath(\bar y)$, and $\tau:=\tau_{x,a}$, so that
+$\tau\mathbin{\cdot}(x_0,a_0)=(x,a)$. The transition symmetry identity of the
+permutation-symmetric class, applied with the permutation $\tau$, states that
+$P_X(\tau\mathbin{\cdot}u\mid
+\tau\mathbin{\cdot}x_0,\tau\mathbin{\cdot}a_0)
+=P_X(u\mid x_0,a_0)$ for every $u$. Substituting
+$u=\tau^{-1}\mathbin{\cdot}x'$ gives the row identity
+\begin{align}
+  P_X(x'\mid x,a)
+  =
+  P_X\big(\tau^{-1}\mathbin{\cdot}x'\,\big|\,x_0,a_0\big).
+  \label{eq:row-transport}
+\end{align}
+Combining \eqref{eq:transported-estimator} and \eqref{eq:row-transport}, and
+reindexing the sum over $x'$ by the bijection
+$x'\mapsto\tau^{-1}\mathbin{\cdot}x'$,
+\begin{align*}
+  \norm{\trP(\cdot\mid x,a)-P_X(\cdot\mid x,a)}_1
+  &=
+  \sum_{x'\in\mathcal S_X}
+  \abs{
+    \widehat{P}_X\big(\tau^{-1}\mathbin{\cdot}x'\mid x_0,a_0\big)
+    -
+    P_X\big(\tau^{-1}\mathbin{\cdot}x'\mid x_0,a_0\big)
+  }\\
+  &=
+  \norm{\widehat{P}_X(\cdot\mid x_0,a_0)-P_X(\cdot\mid x_0,a_0)}_1.
+\end{align*}
+Thus \eqref{eq:transport-event} holds as soon as every representative row is
+$\varepsilon_P$-accurate in $\ell_1$. For a fixed representative row and any
+subset $B\subseteq\mathcal S_X$, the empirical mass
+$\widehat{P}_X(B\mid x_0,a_0)$ is the empirical mean of $n$ independent
+Bernoulli variables with mean $P_X(B\mid x_0,a_0)$, so, exactly as in the
+proof of \Cref{lemma:l1-concentration}, Hoeffding's inequality and a union
+bound over the $2^{\abs{\mathcal S_X}}$ subsets and the
+$\abs{\mathcal Y_X}$ representative rows bound the failure probability by
+\begin{align*}
+  \abs{\mathcal Y_X}\,
+  2^{\abs{\mathcal S_X}}
+  \exp\left(-\frac{n\varepsilon_P^2}{2}\right)
+  \le
+  \delta
+\end{align*}
+under the stated budget.
+\end{proof}
+
+\begin{proof}[Proof of \Cref{thm:sample-complexity}]
+Instantiate $X:=\quotient M$ and $Q:=\hatP$, so that $\pi_Q=\pice$; by
+\Cref{lemma:quotient-is-mpg}, $X$ satisfies the standing hypotheses of this
+section. Set
+\begin{align*}
+  \varepsilon_P
+  :=
+  \begin{cases}
+    \dfrac{(1-\gamma)\epsilon}{2\gamma\Phisup},
+    &\gamma\Phisup>0,\\[4pt]
+    2,
+    &\gamma\Phisup=0.
+  \end{cases}
+\end{align*}
+In the second case, \eqref{eq:l1-event} holds surely because the $\ell_1$
+distance of two probability vectors never exceeds $2$, and
+$\eta_Q\le\gamma\varepsilon_P\Phisup/(1-\gamma)=0$; the budget
+\eqref{eq:per-pair-budget} is also vacuous. In the first case, the budget
+\eqref{eq:per-pair-budget} equals the budget of
+\Cref{lemma:l1-concentration} at this $\varepsilon_P$, so
+\eqref{eq:l1-event} holds with probability at least $1-\delta$, and on that
+event $\varepsilon_Q\le\varepsilon_P$, hence $2\eta_Q\le\epsilon$. In both
+cases, on the event \eqref{eq:l1-event},
+\Cref{lemma:ce-optimality,lemma:potential-nash-gap} give
+\begin{align*}
+  \Nash_{\quotient M}(\pice)
+  \le
+  2\eta_Q
+  \le
+  \epsilon.
+\end{align*}
+By \eqref{eq:nash-gap-preservation} in \Cref{thm:exact-quotient},
+\begin{align*}
+  \Nash_M\big(\pice^\uparrow\big)
+  =
+  \Nash_{\quotient M}(\pice)
+  \le
+  \epsilon,
+\end{align*}
+which proves \eqref{eq:sample-nash-guarantee}. Multiplying the per-pair
+budget \eqref{eq:per-pair-budget} by the $\abs{\quotient\St}\abs\Ac$ queried
+pairs gives the sufficient total budget
+$B^{\mathrm{gen}}(\epsilon,\delta;\abs{\quotient\St},\abs\Ac)$ in
+\eqref{eq:total-budget}.
+
+For part \ref{item:sample-complexity-comparison}, apply the entire argument
+with the trivial group $G=\{e\}$: every orbit is a singleton, the quotient is
+$M$ itself, \Cref{def:g-symmetric-mg} and \Cref{assumption:symmetry} hold
+vacuously, and \eqref{eq:pooled-estimator} reduces to the standard empirical
+kernel at each pair $(s,a)$. The same pipeline run directly on $M$ therefore
+has the sufficient budget
+$B^{\mathrm{gen}}(\epsilon,\delta;\abs\St,\abs\Ac)$. The equality in
+\eqref{eq:sample-ratio} is direct substitution into \eqref{eq:total-budget}.
+The inequality follows because $\abs{\quotient\St}\le\abs\St$ and, at fixed
+action count $A$, the map $S\mapsto S\log2+\log(SA/\delta)$ is nondecreasing
+for $S\ge1$, so the second factor is at most one.
+\end{proof}
+
+\begin{proof}[Proof of \Cref{thm:perm-sample-complexity}]
+Take $Q:=\trP$, so that $\pi_Q=\pi_{\mathrm{ce}}$, and choose
+$\varepsilon_P$ exactly as in the proof of \Cref{thm:sample-complexity}; the
+same case analysis applies, with \Cref{lemma:transport-concentration} in
+place of \Cref{lemma:l1-concentration} and the budget
+\eqref{eq:perm-per-orbit-budget} in place of \eqref{eq:per-pair-budget}. On
+the event \eqref{eq:transport-event}, $\varepsilon_Q\le\varepsilon_P$ and
+$2\eta_Q\le\epsilon$, so \Cref{lemma:ce-optimality,lemma:potential-nash-gap}
+give
+\begin{align*}
+  \Nash_X(\pi_{\mathrm{ce}})
+  \le
+  2\eta_Q
+  \le
+  \epsilon.
+\end{align*}
+Multiplying the per-orbit budget \eqref{eq:perm-per-orbit-budget} by the
+$\abs{\mathcal Y_X}$ queried orbits gives \eqref{eq:perm-total-budget}.
+
+For part \ref{item:perm-sample-comparison}, the untied construction is
+\Cref{thm:sample-complexity}\ref{item:sample-complexity-comparison} applied
+to $X$, with state count $\abs{\mathcal S_X}$ and action count
+$\abs{\mathcal B_X}^N$. The equality in \eqref{eq:perm-sample-ratio} is
+direct substitution into \eqref{eq:total-budget} and
+\eqref{eq:perm-total-budget}. The inequality follows because the orbit map
+$(x,a)\mapsto y(x,a)$ is onto, so
+$\abs{\mathcal Y_X}\le\abs{\mathcal S_X}\abs{\mathcal B_X}^N$ and the second
+factor is at most one.
+\end{proof}
+
+\begin{proof}[Proof of \Cref{cor:combined-sample}]
+By \Cref{thm:combined-reductions}, $\quotient M$ is permutation symmetric
+under the induced action
+$\sigma\mathbin{\cdot}\bar s=\rho(\sigma\mathbin{\cdot}s)$, and by
+\Cref{lemma:quotient-is-mpg} it satisfies \Cref{assumption:standing} with the
+same total-potential bounds, hence the same $\Phisup$. Its generative model
+is realized through $M$: querying a representative quotient pair means
+sampling $s'\sim P(\cdot\mid\iota(\bar s),a)$ and recording the orbit
+$\rho(s')$, which by \eqref{eq:pooled-unbiased} is an exact draw from
+$\quotient P(\cdot\mid\bar s,a)$. \Cref{thm:perm-sample-complexity} applied
+to $X=\quotient M$, whose next-state space is $\quotient\St$ and whose
+pair-orbit space is $\mathcal Y_{\quotient M}$, then gives
+$\Nash_{\quotient M}(\pice)\le\epsilon$ with probability at least $1-\delta$
+under the stated per-orbit budget, with total budget
+$n\abs{\mathcal Y_{\quotient M}}$. Finally,
+\eqref{eq:nash-gap-preservation} transfers the bound:
+$\Nash_M(\pice^\uparrow)=\Nash_{\quotient M}(\pice)\le\epsilon$.
+\end{proof}
+
+\end{document}
